@@ -319,7 +319,35 @@ serve(async (req) => {
           metadata: sub.metadata
         });
 
-        // Resolve plan from subscription data (canonical source)
+        // Handle canceled subscriptions - automatically downgrade to starter
+        if (sub.status === 'canceled') {
+          console.log(`Subscription ${sub.id} is canceled - downgrading user to starter plan`);
+          const payload = {
+            stripe_customer_id: customerId,
+            subscription_id: sub.id,
+            subscription_status: sub.status,
+            plan: 'starter', // Force downgrade to starter
+            current_period_start: toTimestamp(sub.current_period_start),
+            current_period_end: toTimestamp(sub.current_period_end),
+            plan_joined_at: null // Reset plan joined date
+          };
+
+          // Find user by subscription metadata or customer lookup
+          let userKey = userKeyFrom(sub);
+          if (!userKey && customerId) {
+            userKey = await findByCustomer(supabase, customerId);
+          }
+
+          if (userKey) {
+            await upsertUser(supabase, userKey, payload);
+            console.log(`Successfully downgraded user to starter plan due to canceled subscription`);
+          } else {
+            console.error('Could not find user for canceled subscription:', sub.id);
+          }
+          break;
+        }
+
+        // Resolve plan from subscription data (canonical source) for active subscriptions
         const plan = resolvePlanFromSubscription(sub);
         
         const payload = {
@@ -402,15 +430,25 @@ serve(async (req) => {
 
       case 'invoice.payment_failed': {
         const inv = event.data.object;
+        console.log('Processing invoice.payment_failed:', {
+          invoice_id: inv.id,
+          customer_id: inv.customer,
+          subscription_id: inv.subscription
+        });
+
+        // Downgrade to starter plan when payment fails
         const payload = {
           stripe_customer_id: inv.customer,
           subscription_id: inv.subscription,
-          subscription_status: 'past_due'
+          subscription_status: 'past_due',
+          plan: 'starter', // Force downgrade to starter
+          plan_joined_at: null // Reset plan joined date
         };
 
         const userKey = userKeyFrom(inv);
         if (userKey) {
           await upsertUser(supabase, userKey, payload);
+          console.log(`Successfully downgraded user to starter plan due to payment failure`);
         }
         break;
       }
