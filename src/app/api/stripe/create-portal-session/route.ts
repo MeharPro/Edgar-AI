@@ -103,7 +103,7 @@ export async function POST() {
       }, { status: 422 });
     }
     
-    const base = process.env.SITE_URL || "https://edgar.daybot.ca; // dev only
+    const base = process.env.SITE_URL || "https://edgar.daybot.ca"; // dev only
     const returnUrl = `${base.replace(/\/+$/, "")}/dashboard`;
     
     console.log("Creating portal session", { 
