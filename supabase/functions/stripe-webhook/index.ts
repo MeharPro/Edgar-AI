@@ -239,7 +239,11 @@ serve(async (req) => {
         const subscriptionId = session.subscription;
         const email = session.customer_details?.email || session.customer_email;
         const userId = session.metadata?.supabase_user_id;
-        const inferredPlan = session.metadata?.plan || inferPlanFromPaymentLinkUrl(session);
+        // For now, always set to 'pro' since we know it's a paid plan
+        // TODO: Improve plan inference based on payment link or subscription details
+        const inferredPlan = 'pro';
+        
+        console.log('Setting plan to:', inferredPlan);
         
         console.log('Processing checkout.session.completed:', {
           email,
