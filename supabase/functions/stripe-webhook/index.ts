@@ -13,29 +13,18 @@ function inferPlanFromPaymentLinkUrl(session) {
     recovery_url: session.after_expiration?.recovery?.url,
     success_url: session.success_url,
     cancel_url: session.cancel_url,
-    metadata: session.metadata
+    metadata: session.metadata,
+    line_items: session.line_items?.data,
+    amount_total: session.amount_total,
+    currency: session.currency
   });
+  
   // Check metadata first
   if (session.metadata?.plan) {
     console.log('Plan found in metadata:', session.metadata.plan);
     return session.metadata.plan;
   }
-  // Check URLs
-  const urls = [
-    session.after_expiration?.recovery?.url,
-    session.success_url,
-    session.cancel_url
-  ].filter(Boolean);
-  for (const url of urls){
-    if (url.includes('Vy01')) {
-      console.log('Plan inferred from URL (Vy01): pro');
-      return 'pro';
-    }
-    if (url.includes('Vy02')) {
-      console.log('Plan inferred from URL (Vy02): max');
-      return 'max';
-    }
-  }
+  
   // Check line items for price information
   if (session.line_items?.data?.[0]?.price?.nickname) {
     const nickname = session.line_items.data[0].price.nickname.toLowerCase();
@@ -48,6 +37,40 @@ function inferPlanFromPaymentLinkUrl(session) {
       return 'max';
     }
   }
+  
+  // Check amount to determine plan
+  if (session.amount_total && session.currency === 'usd') {
+    const amountInDollars = session.amount_total / 100; // Stripe amounts are in cents
+    console.log(`Amount in dollars: ${amountInDollars}`);
+    
+    if (amountInDollars === 20) {
+      console.log('Plan inferred from amount ($20): pro');
+      return 'pro';
+    }
+    if (amountInDollars === 100) {
+      console.log('Plan inferred from amount ($100): max');
+      return 'max';
+    }
+  }
+  
+  // Check URLs as fallback
+  const urls = [
+    session.after_expiration?.recovery?.url,
+    session.success_url,
+    session.cancel_url
+  ].filter(Boolean);
+  
+  for (const url of urls){
+    if (url.includes('Vy01')) {
+      console.log('Plan inferred from URL (Vy01): pro');
+      return 'pro';
+    }
+    if (url.includes('Vy02')) {
+      console.log('Plan inferred from URL (Vy02): max');
+      return 'max';
+    }
+  }
+  
   console.log('No plan found, defaulting to pro');
   return 'pro'; // default fallback
 }
