@@ -56,8 +56,16 @@ export async function POST() {
 
     console.log('create-portal-session: Validating customer with Stripe:', user.stripe_customer_id);
 
+    // Check if Stripe secret key is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('create-portal-session: STRIPE_SECRET_KEY not configured');
+      return NextResponse.json({ 
+        error: "Stripe configuration missing" 
+      }, { status: 500 });
+    }
+
     // Create Stripe Customer Portal session
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-07-30.basil',
     });
 
