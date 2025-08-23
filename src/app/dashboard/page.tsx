@@ -101,18 +101,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error creating portal session:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      // If customer was deleted, offer fallback
-      if (errorMessage.includes('Customer has been deleted in Stripe')) {
-        const useFallback = confirm(
-          'Your billing account needs to be refreshed. Would you like to use the login link instead?'
-        );
-        if (useFallback) {
-          window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
-          return;
-        }
-      }
-      
       alert(`Failed to open subscription management: ${errorMessage}`);
     }
   };
@@ -262,7 +250,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Subscription Status */}
-      {userInfo && isPaidSubscriptionActive() && (
+      {userInfo && userInfo.plan !== "starter" && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-white text-lg font-medium">Subscription Status</h2>

@@ -76,18 +76,8 @@ export async function POST() {
       // Check if customer is deleted
       if (customer.deleted) {
         console.error('create-portal-session: Customer is deleted:', user.stripe_customer_id);
-        
-        // Clear the invalid customer ID from database
-        await supabaseAdmin
-          .from('users')
-          .update({ 
-            stripe_customer_id: null,
-            subscription_status: 'inactive'
-          })
-          .eq('id', user.id);
-        
         return NextResponse.json({ 
-          error: "Customer has been deleted in Stripe. Please try again in a moment." 
+          error: "Customer has been deleted in Stripe." 
         }, { status: 422 });
       }
       
