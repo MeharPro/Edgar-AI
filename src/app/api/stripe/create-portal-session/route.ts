@@ -105,7 +105,7 @@ export async function POST() {
     
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
-      return_url: `${process.env.NEXTAUTH_URL}/dashboard`,
+      return_url: `https://edgar.daybot.ca/dashboard`,
     });
 
     console.log('create-portal-session: Portal session created successfully', {
