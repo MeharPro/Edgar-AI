@@ -116,6 +116,13 @@ export default function DashboardPage() {
       if (userRes.ok) {
         const newUserInfo = await userRes.json();
         
+        // Debug logging
+        console.log('User info received:', newUserInfo);
+        console.log('Plan:', newUserInfo.plan);
+        console.log('Subscription status:', newUserInfo.subscription_status);
+        console.log('Current period end:', newUserInfo.current_period_end);
+        console.log('Stripe customer ID:', newUserInfo.stripe_customer_id);
+        
         // Check if user just upgraded to Pro or Max
         if (previousPlan === "starter" && (newUserInfo.plan === "pro" || newUserInfo.plan === "max")) {
           setShowWelcomePopup(true);
@@ -143,6 +150,20 @@ export default function DashboardPage() {
   const isSubscriptionActive = () => {
     // Starter plan is always active (free tier)
     if (userInfo?.plan === "starter") return true;
+    
+    if (!userInfo?.subscription_status) return false;
+    if (!userInfo?.current_period_end) return false;
+    
+    const activeStatuses = ["active", "trialing"];
+    const isActive = activeStatuses.includes(userInfo.subscription_status);
+    const isNotExpired = new Date(userInfo.current_period_end) > new Date();
+    
+    return isActive && isNotExpired;
+  };
+
+  const isPaidSubscriptionActive = () => {
+    // Only check for Pro/Max subscriptions
+    if (userInfo?.plan === "starter") return false;
     
     if (!userInfo?.subscription_status) return false;
     if (!userInfo?.current_period_end) return false;
@@ -227,7 +248,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Subscription Status */}
-      {userInfo && userInfo.plan !== "starter" && isSubscriptionActive() && (
+      {userInfo && isPaidSubscriptionActive() && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-white text-lg font-medium">Subscription Status</h2>
