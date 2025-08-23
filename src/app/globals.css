@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #07030e;
+  --foreground: #e7dfff;
 }
 
 @theme inline {
@@ -12,15 +12,29 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Stick to premium dark theme by default */
 
 body {
-  background: var(--background);
+  background: radial-gradient(1200px 800px at 50% -10%, rgba(168, 85, 247, 0.18), transparent 60%),
+    radial-gradient(800px 600px at 90% 10%, rgba(236, 72, 153, 0.12), transparent 60%),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bg-gradient-radial {
+  background: radial-gradient(1200px 800px at 50% -10%, rgba(168, 85, 247, 0.18), transparent 60%),
+    radial-gradient(800px 600px at 90% 10%, rgba(236, 72, 153, 0.12), transparent 60%),
+    var(--background);
+}
+
+.bg-grid-purple\/10 {
+  background-image: linear-gradient(rgba(168, 85, 247, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px;
+  background-position: -1px -1px, -1px -1px;
+}
+
+/* Ensure white SVG when class "invert" is applied */
+.invert {
+  filter: invert(1);
 }
