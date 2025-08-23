@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -64,6 +64,15 @@ export async function POST() {
     // Sanity: ensure the customer exists in this Stripe account + mode
     try {
       const customer = await stripe.customers.retrieve(user.stripe_customer_id);
+      
+      // Check if customer is deleted
+      if (customer.deleted) {
+        console.error('create-portal-session: Customer is deleted:', user.stripe_customer_id);
+        return NextResponse.json({ 
+          error: "Customer has been deleted in Stripe." 
+        }, { status: 422 });
+      }
+      
       console.log('create-portal-session: Customer validated:', {
         customer_id: customer.id,
         customer_email: customer.email
