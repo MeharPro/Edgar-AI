@@ -47,6 +47,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [apiKeyMasked, setApiKeyMasked] = useState<string | null>(null);
+  const [generatingKey, setGeneratingKey] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -105,13 +108,42 @@ export default function DashboardPage() {
     }
   };
 
+  const handleGenerateApiKey = async () => {
+    try {
+      setGeneratingKey(true);
+      const response = await fetch('/api/keys/issue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to generate API key: ${response.status}`);
+      }
+
+      const { apiKey: newApiKey } = await response.json();
+      setApiKey(newApiKey);
+      setApiKeyMasked(newApiKey.slice(0, 10) + '************************');
+      
+      // Refresh the dashboard data to update the masked key
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error generating API key:', error);
+      alert('Failed to generate API key. Please try again.');
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
+
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [usageRes, userRes, detailsRes, splitRes] = await Promise.all([
+      const [usageRes, userRes, detailsRes, splitRes, apiKeyRes] = await Promise.all([
         fetch("/api/usage"),
         fetch("/api/user/info", { cache: 'no-store' }),
         fetch("/api/usage/details"),
         fetch("/api/usage/split"),
+        fetch("/api/keys/me"),
       ]);
 
       if (usageRes.ok) setUsageSummary(await usageRes.json());
@@ -141,6 +173,10 @@ export default function DashboardPage() {
       if (splitRes.ok) {
         const splitData = await splitRes.json();
         setProviderSplit(splitData.split || []);
+      }
+      if (apiKeyRes.ok) {
+        const apiKeyData = await apiKeyRes.json();
+        setApiKeyMasked(apiKeyData.apiKeyMasked);
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -294,6 +330,76 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* API Key Section */}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-white text-lg font-medium">API Key</h2>
+          {!apiKeyMasked && (
+            <button
+              onClick={handleGenerateApiKey}
+              disabled={generatingKey}
+              className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {generatingKey ? 'Generating...' : 'Generate API Key'}
+            </button>
+          )}
+        </div>
+        
+        {apiKey ? (
+          <div className="space-y-3">
+            <div className="bg-black/20 rounded-lg p-4">
+              <p className="text-white/80 text-sm mb-2">Your API Key (copy this - you won&apos;t see it again):</p>
+              <div className="flex items-center gap-2">
+                <code className="bg-white/10 px-3 py-2 rounded text-sm text-green-400 font-mono break-all">
+                  {apiKey}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(apiKey)}
+                  className="bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+            <p className="text-yellow-400 text-xs">
+              ⚠️ Store this key securely. You won&apos;t be able to see the full key again.
+            </p>
+          </div>
+        ) : apiKeyMasked ? (
+          <div className="space-y-3">
+            <div className="bg-black/20 rounded-lg p-4">
+              <p className="text-white/80 text-sm mb-2">Your API Key:</p>
+              <div className="flex items-center gap-2">
+                <code className="bg-white/10 px-3 py-2 rounded text-sm text-white/60 font-mono">
+                  {apiKeyMasked}
+                </code>
+                <button
+                  onClick={handleGenerateApiKey}
+                  disabled={generatingKey}
+                  className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white text-xs px-2 py-1 rounded transition-colors"
+                >
+                  {generatingKey ? 'Generating...' : 'Regenerate'}
+                </button>
+              </div>
+            </div>
+            <p className="text-white/60 text-xs">
+              You already have an API key. Generate a new one to replace it.
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-white/60 mb-4">Generate an API key to start using the Edgar API</p>
+            <button
+              onClick={handleGenerateApiKey}
+              disabled={generatingKey}
+              className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {generatingKey ? 'Generating...' : 'Generate API Key'}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
