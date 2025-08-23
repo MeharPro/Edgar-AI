@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import UsageGraph from "@/components/UsageGraph";
 
 interface UsageSummary {
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const [usageRes, userRes, detailsRes, splitRes] = await Promise.all([
         fetch("/api/usage"),
@@ -147,7 +147,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [previousPlan]);
 
   const isSubscriptionActive = () => {
     // Starter plan is always active (free tier)

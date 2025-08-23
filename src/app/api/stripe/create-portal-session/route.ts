@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 
 export const runtime = 'nodejs';
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     console.log('create-portal-session: Starting request');
     
@@ -68,11 +68,18 @@ export async function POST(_req: NextRequest) {
         customer_id: customer.id,
         customer_email: customer.email
       });
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
+      const errorCode = stripeError && typeof stripeError === 'object' && 'code' in stripeError 
+        ? (stripeError as { code: string }).code 
+        : 'unknown';
+      const errorMessage = stripeError && typeof stripeError === 'object' && 'message' in stripeError 
+        ? (stripeError as { message: string }).message 
+        : 'Unknown error';
+      
       console.error('create-portal-session: stripe.customer.retrieve failed', {
         customer_id: user.stripe_customer_id,
-        error_code: stripeError.code,
-        error_message: stripeError.message
+        error_code: errorCode,
+        error_message: errorMessage
       });
       return NextResponse.json({ 
         error: "Customer not found in current Stripe environment. Check test/live mode." 
