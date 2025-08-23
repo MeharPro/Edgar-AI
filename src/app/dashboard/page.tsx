@@ -75,31 +75,33 @@ export default function DashboardPage() {
 
   const handleManageSubscription = async () => {
     try {
-      // Check if user has a Stripe customer ID
-      if (userInfo?.stripe_customer_id) {
-        // Preferred: customer-specific session (no email step)
-        const response = await fetch('/api/stripe/create-portal-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const { url } = await response.json();
-          window.location.href = url;
-          return;
-        } else {
-          console.log('Portal session creation failed, using fallback');
-        }
-      }
+      console.log('Manage subscription clicked. User info:', userInfo);
       
-      // Fallback: generic login link
-      window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
+      // Check if user has a Stripe customer ID
+      if (!userInfo?.stripe_customer_id) {
+        throw new Error('No stripe_customer_id available');
+      }
+
+      // TEMPORARY: No silent fallback - force error to surface
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`create-portal-session failed: ${response.status} ${text}`);
+      }
+
+      const { url } = await response.json();
+      console.log('Portal session created successfully, redirecting to:', url);
+      window.location.href = url;
     } catch (error) {
       console.error('Error creating portal session:', error);
-      // Fallback to generic login
-      window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to open subscription management: ${errorMessage}`);
     }
   };
 
@@ -107,7 +109,7 @@ export default function DashboardPage() {
     try {
       const [usageRes, userRes, detailsRes, splitRes] = await Promise.all([
         fetch("/api/usage"),
-        fetch("/api/user/info"),
+        fetch("/api/user/info", { cache: 'no-store' }),
         fetch("/api/usage/details"),
         fetch("/api/usage/split"),
       ]);
@@ -252,12 +254,17 @@ export default function DashboardPage() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-white text-lg font-medium">Subscription Status</h2>
-            <button
-              onClick={handleManageSubscription}
-              className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              Manage Subscription
-            </button>
+            <div className="flex items-center gap-2">
+              {!userInfo.stripe_customer_id && (
+                <span className="text-yellow-400 text-xs">Setting up billing...</span>
+              )}
+              <button
+                onClick={handleManageSubscription}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Manage Subscription
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex justify-between text-white/80 text-sm">
