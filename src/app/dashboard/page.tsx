@@ -72,6 +72,28 @@ export default function DashboardPage() {
     };
   }, [session, status, router]);
 
+  const handleManageSubscription = async () => {
+    try {
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        window.location.href = url;
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating portal session:', error);
+      alert('Failed to open subscription management. Please try again.');
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       const [usageRes, userRes, detailsRes, splitRes] = await Promise.all([
@@ -196,9 +218,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Subscription Status */}
-      {userInfo && (
+      {userInfo && userInfo.plan !== "starter" && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-white text-lg font-medium mb-4">Subscription Status</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-white text-lg font-medium">Subscription Status</h2>
+            <button
+              onClick={handleManageSubscription}
+              className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Manage Subscription
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex justify-between text-white/80 text-sm">
               <span>Plan:</span>
