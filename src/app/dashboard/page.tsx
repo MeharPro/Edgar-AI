@@ -208,7 +208,7 @@ export default function DashboardPage() {
     switch (plan) {
       case "starter": return "5,000";
       case "pro": return "2M";
-              case "max": return "10M";
+      case "max": return "10M";
       default: return "5,000";
     }
   };

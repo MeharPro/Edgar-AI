@@ -34,10 +34,10 @@ const TIERS: Tier[] = [
   {
     name: "Max",
     price: "$100",
-    tagline: "Everything, unlimited",
-    tokens: "Unlimited tokens",
+    tagline: "Ultimate scale",
+    tokens: "10M tokens/mo",
     features: [
-      "Unlimited usage",
+      "Maximum capacity",
       "Enterprise readiness",
       "Premium support",
     ],
