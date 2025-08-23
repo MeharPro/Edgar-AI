@@ -101,6 +101,18 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error creating portal session:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // If customer was deleted, offer fallback
+      if (errorMessage.includes('Customer has been deleted in Stripe')) {
+        const useFallback = confirm(
+          'Your billing account needs to be refreshed. Would you like to use the login link instead?'
+        );
+        if (useFallback) {
+          window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
+          return;
+        }
+      }
+      
       alert(`Failed to open subscription management: ${errorMessage}`);
     }
   };
