@@ -11,7 +11,7 @@ interface UserData {
 export async function ensureUserByEmail(email: string): Promise<UserData | null> {
   const { data } = await supabaseAdmin
     .from("users")
-    .upsert({ email, plan: "starter" }, { onConflict: "email" })
+    .upsert({ email }, { onConflict: "email" })
     .select("id, plan, total_tokens, subscription_status, current_period_end")
     .single();
   if (!data) return null;

@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
       if (!user?.email) return;
       const { error } = await supabaseAdmin
         .from("users")
-        .upsert({ email: user.email, name: user.name ?? null, plan: "starter" }, { onConflict: "email" });
+        .upsert({ email: user.email, name: user.name ?? null }, { onConflict: "email" });
       if (error) {
         // Surface in logs to diagnose why rows are not written
         console.error("Supabase upsert users failed on signIn:", error.message);
