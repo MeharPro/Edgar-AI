@@ -47,10 +47,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [existingApiKey, setExistingApiKey] = useState<string | null>(null);
-  const [generatingKey, setGeneratingKey] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [maskedKey, setMaskedKey] = useState<string | null>(null);
+  const [fullKey, setFullKey] = useState<string | null>(null);
+  const [optIn, setOptIn] = useState<boolean>(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -111,12 +110,13 @@ export default function DashboardPage() {
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [usageRes, userRes, detailsRes, splitRes, apiKeyRes] = await Promise.all([
+      const [usageRes, userRes, detailsRes, splitRes, keysRes, leaderboardRes] = await Promise.all([
         fetch("/api/usage"),
         fetch("/api/user/info", { cache: 'no-store' }),
         fetch("/api/usage/details"),
         fetch("/api/usage/split"),
         fetch("/api/keys/me"),
+        fetch("/api/leaderboard/opt-in"),
       ]);
 
       if (usageRes.ok) setUsageSummary(await usageRes.json());
@@ -147,39 +147,26 @@ export default function DashboardPage() {
         const splitData = await splitRes.json();
         setProviderSplit(splitData.split || []);
       }
-      if (apiKeyRes.ok) {
-        const apiKeyData = await apiKeyRes.json();
-        setExistingApiKey(apiKeyData.apiKeyMasked);
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        setMaskedKey(keysData.apiKeyMasked);
       }
+      if (leaderboardRes.ok) {
+        const leaderboardData = await leaderboardRes.json();
+        setOptIn(Boolean(leaderboardData.enabled));
+      }
+      
+      // Load full key from localStorage if available
+      try {
+        const storedKey = localStorage.getItem("edgar_provider_key");
+        if (storedKey) setFullKey(storedKey);
+      } catch {}
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
   }, [previousPlan]);
-
-  const generateApiKey = async () => {
-    setGeneratingKey(true);
-    try {
-      const response = await fetch("/api/keys/issue", {
-        method: "POST",
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setApiKey(data.apiKey);
-        setExistingApiKey(null); // Clear the masked key since we have the real one
-      } else {
-        console.error("Failed to generate API key");
-        alert("Failed to generate API key. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error generating API key:", error);
-      alert("Error generating API key. Please try again.");
-    } finally {
-      setGeneratingKey(false);
-    }
-  };
 
   const isSubscriptionActive = () => {
     // Starter plan is always active (free tier)
@@ -410,66 +397,6 @@ export default function DashboardPage() {
 
       <UsageGraph />
 
-      {/* API Key Management Section */}
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-white text-lg font-medium mb-4">API Key</h2>
-        <div className="space-y-4">
-          {apiKey ? (
-            <div className="space-y-2">
-              <p className="text-white/70 text-sm">Your API Key (save this securely - it won&apos;t be shown again):</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-green-400 font-mono text-sm break-all">
-                  {apiKey}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(apiKey);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              </div>
-              <p className="text-white/60 text-xs">
-                Include this key in the Authorization header: <code className="bg-black/30 px-1 rounded">Authorization: Bearer {apiKey}</code>
-              </p>
-            </div>
-          ) : existingApiKey ? (
-            <div className="space-y-2">
-              <p className="text-white/70 text-sm">Your existing API key:</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-green-400 font-mono text-sm">
-                  {existingApiKey}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(existingApiKey);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }}
-                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-white/70 text-sm">Generate an API key to start using Edgar&apos;s API:</p>
-              <button
-                onClick={generateApiKey}
-                disabled={generatingKey}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded transition-colors"
-              >
-                {generatingKey ? "Generating..." : "Generate API Key"}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-white text-lg font-medium">Recent API calls</h2>
         <div className="overflow-x-auto">
@@ -504,6 +431,70 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-white text-lg font-medium">Leaderboard</h2>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <p className="text-white/80 text-sm">Feature me on the public usage leaderboard</p>
+            <p className="text-white/60 text-xs">We show masked email, plan, and monthly tokens</p>
+          </div>
+          <button
+            onClick={async () => {
+              const next = !optIn;
+              setOptIn(next);
+              await fetch("/api/leaderboard/opt-in", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ enabled: next }) });
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${optIn ? "bg-purple-600" : "bg-white/20"}`}
+            aria-pressed={optIn}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${optIn ? "translate-x-5" : "translate-x-1"}`} />
+          </button>
+        </div>
+        <a href="/leaderboard" className="mt-4 inline-block text-sm text-purple-400 hover:text-purple-300">View leaderboard →</a>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-white text-lg font-medium">API Keys</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          <div>
+            <label className="text-sm text-white/80">Edgar Provider Key</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                readOnly
+                value={fullKey ?? maskedKey ?? "No key yet"}
+                className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-white placeholder-white/40"
+              />
+              <button
+                onClick={async () => {
+                  const r = await fetch("/api/keys/issue", { method: "POST" });
+                  const d = await r.json();
+                  if (d.apiKey) {
+                    await navigator.clipboard.writeText(d.apiKey);
+                    setFullKey(d.apiKey);
+                    setMaskedKey(d.apiKey.slice(0, 6) + "…" + d.apiKey.slice(-4));
+                    try { localStorage.setItem("edgar_provider_key", d.apiKey); } catch {}
+                  }
+                }}
+                className="rounded-md bg-purple-600 hover:bg-purple-500 text-white px-3 text-sm"
+              >
+                Generate
+              </button>
+              <button
+                onClick={async () => {
+                  if (!fullKey) return;
+                  await navigator.clipboard.writeText(fullKey);
+                }}
+                className="rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-white px-3 text-sm"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-white/60">We never show past keys again for security. The latest generated key is saved only in your browser.</p>
+            <p className="mt-1 text-xs text-purple-400">New endpoint: <code className="bg-purple-900/50 px-1 rounded">/api/chat</code></p>
+          </div>
         </div>
       </div>
 
