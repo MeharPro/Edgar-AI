@@ -48,8 +48,9 @@ export default function DashboardPage() {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [apiKeyMasked, setApiKeyMasked] = useState<string | null>(null);
+  const [existingApiKey, setExistingApiKey] = useState<string | null>(null);
   const [generatingKey, setGeneratingKey] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -108,34 +109,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleGenerateApiKey = async () => {
-    try {
-      setGeneratingKey(true);
-      const response = await fetch('/api/keys/issue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate API key: ${response.status}`);
-      }
-
-      const { apiKey: newApiKey } = await response.json();
-      setApiKey(newApiKey);
-      setApiKeyMasked(newApiKey.slice(0, 10) + '************************');
-      
-      // Refresh the dashboard data to update the masked key
-      fetchDashboardData();
-    } catch (error) {
-      console.error('Error generating API key:', error);
-      alert('Failed to generate API key. Please try again.');
-    } finally {
-      setGeneratingKey(false);
-    }
-  };
-
   const fetchDashboardData = useCallback(async () => {
     try {
       const [usageRes, userRes, detailsRes, splitRes, apiKeyRes] = await Promise.all([
@@ -176,7 +149,7 @@ export default function DashboardPage() {
       }
       if (apiKeyRes.ok) {
         const apiKeyData = await apiKeyRes.json();
-        setApiKeyMasked(apiKeyData.apiKeyMasked);
+        setExistingApiKey(apiKeyData.apiKeyMasked);
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -184,6 +157,29 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }, [previousPlan]);
+
+  const generateApiKey = async () => {
+    setGeneratingKey(true);
+    try {
+      const response = await fetch("/api/keys/issue", {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setApiKey(data.apiKey);
+        setExistingApiKey(null); // Clear the masked key since we have the real one
+      } else {
+        console.error("Failed to generate API key");
+        alert("Failed to generate API key. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error generating API key:", error);
+      alert("Error generating API key. Please try again.");
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
 
   const isSubscriptionActive = () => {
     // Starter plan is always active (free tier)
@@ -331,76 +327,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* API Key Section */}
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-white text-lg font-medium">API Key</h2>
-          {!apiKeyMasked && (
-            <button
-              onClick={handleGenerateApiKey}
-              disabled={generatingKey}
-              className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              {generatingKey ? 'Generating...' : 'Generate API Key'}
-            </button>
-          )}
-        </div>
-        
-        {apiKey ? (
-          <div className="space-y-3">
-            <div className="bg-black/20 rounded-lg p-4">
-              <p className="text-white/80 text-sm mb-2">Your API Key (copy this - you won&apos;t see it again):</p>
-              <div className="flex items-center gap-2">
-                <code className="bg-white/10 px-3 py-2 rounded text-sm text-green-400 font-mono break-all">
-                  {apiKey}
-                </code>
-                <button
-                  onClick={() => navigator.clipboard.writeText(apiKey)}
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded transition-colors"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-            <p className="text-yellow-400 text-xs">
-              ⚠️ Store this key securely. You won&apos;t be able to see the full key again.
-            </p>
-          </div>
-        ) : apiKeyMasked ? (
-          <div className="space-y-3">
-            <div className="bg-black/20 rounded-lg p-4">
-              <p className="text-white/80 text-sm mb-2">Your API Key:</p>
-              <div className="flex items-center gap-2">
-                <code className="bg-white/10 px-3 py-2 rounded text-sm text-white/60 font-mono">
-                  {apiKeyMasked}
-                </code>
-                <button
-                  onClick={handleGenerateApiKey}
-                  disabled={generatingKey}
-                  className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white text-xs px-2 py-1 rounded transition-colors"
-                >
-                  {generatingKey ? 'Generating...' : 'Regenerate'}
-                </button>
-              </div>
-            </div>
-            <p className="text-white/60 text-xs">
-              You already have an API key. Generate a new one to replace it.
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-white/60 mb-4">Generate an API key to start using the Edgar API</p>
-            <button
-              onClick={handleGenerateApiKey}
-              disabled={generatingKey}
-              className="bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              {generatingKey ? 'Generating...' : 'Generate API Key'}
-            </button>
-          </div>
-        )}
-      </div>
-
       <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <p className="text-white/70 text-sm">This billing cycle</p>
@@ -483,6 +409,66 @@ export default function DashboardPage() {
       </div>
 
       <UsageGraph />
+
+      {/* API Key Management Section */}
+      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 className="text-white text-lg font-medium mb-4">API Key</h2>
+        <div className="space-y-4">
+          {apiKey ? (
+            <div className="space-y-2">
+              <p className="text-white/70 text-sm">Your API Key (save this securely - it won&apos;t be shown again):</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-green-400 font-mono text-sm break-all">
+                  {apiKey}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(apiKey);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <p className="text-white/60 text-xs">
+                Include this key in the Authorization header: <code className="bg-black/30 px-1 rounded">Authorization: Bearer {apiKey}</code>
+              </p>
+            </div>
+          ) : existingApiKey ? (
+            <div className="space-y-2">
+              <p className="text-white/70 text-sm">Your existing API key:</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-green-400 font-mono text-sm">
+                  {existingApiKey}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(existingApiKey);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-white/70 text-sm">Generate an API key to start using Edgar&apos;s API:</p>
+              <button
+                onClick={generateApiKey}
+                disabled={generatingKey}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded transition-colors"
+              >
+                {generatingKey ? "Generating..." : "Generate API Key"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-white text-lg font-medium">Recent API calls</h2>
