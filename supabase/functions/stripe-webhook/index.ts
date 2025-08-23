@@ -6,11 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-// Plan resolution mappings - UPDATE THESE WITH YOUR ACTUAL PRICE IDs
+// Plan resolution mappings - ACTUAL STRIPE PRICE IDs
 const PLAN_BY_PRICE_ID = {
-  // Add your actual Stripe price IDs here
-  // Example: "price_1ABC123DEF456": "pro",
-  // Example: "price_1XYZ789GHI012": "max"
+  "price_1RyzmuKoK7HcifPAXCmjV4IU": "pro",  // Pro product
+  "price_1Rz0BDKoK7HcifPATcdcwafA": "max"   // Max product
 };
 
 const PLAN_BY_LOOKUP_KEY = {
