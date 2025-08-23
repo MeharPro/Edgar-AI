@@ -1,9 +1,9 @@
 export type Plan = "starter" | "pro" | "max";
 
-export const PLAN_LIMITS: Record<Plan, number | "infinite"> = {
+export const PLAN_LIMITS: Record<Plan, number> = {
   starter: 5_000, // Free → 5K tokens per billing cycle
-  pro: 10_000_000, // $20 → 10M tokens per billing cycle
-  max: "infinite", // $100 → infinite tokens
+  pro: 2_000_000, // $20 → 2M tokens per billing cycle
+  max: 10_000_000, // $100 → 10M tokens
 };
 
 export function approximateTokensFromText(text: string): number {

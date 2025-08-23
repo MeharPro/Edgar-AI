@@ -75,8 +75,8 @@ BEGIN
   -- Set plan limits (MONTHLY)
   CASE user_plan
     WHEN 'starter' THEN plan_limit := 5000;
-    WHEN 'pro' THEN plan_limit := 10000000;
-    WHEN 'max' THEN plan_limit := 2147483647; -- Max bigint value (effectively infinite)
+            WHEN 'pro' THEN plan_limit := 2000000;
+        WHEN 'max' THEN plan_limit := 10000000;
     ELSE plan_limit := 5000; -- default to starter
   END CASE;
   

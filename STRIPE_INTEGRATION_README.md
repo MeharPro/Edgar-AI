@@ -56,7 +56,7 @@ CREATE TABLE public.stripe_event_log (
 ### Pro Plan ($20/month)
 - **URL**: https://buy.stripe.com/8x28wQ7Qwa6zgps1KJ4Vy01
 - **Plan Mapping**: `...Vy01` → `plan = "pro"`
-- **Token Limit**: 10M tokens/month
+- **Token Limit**: 2M tokens/month
 
 ### Max Plan ($100/month)
 - **URL**: https://buy.stripe.com/7sYcN63AgceHb588974Vy02

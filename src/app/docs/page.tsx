@@ -379,7 +379,7 @@ print(response.choices[0].message.content)`,
               <p className="text-3xl font-bold text-white mb-2">$20</p>
               <p className="text-white/70 text-sm mb-4">For growing applications</p>
               <ul className="space-y-2 text-sm text-white/80">
-                <li>• 10M tokens/month</li>
+                <li>• 2M tokens/month</li>
                 <li>• Priority capacity</li>
                 <li>• Faster response times</li>
                 <li>• Advanced analytics</li>

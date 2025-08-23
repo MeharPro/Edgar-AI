@@ -61,8 +61,8 @@ begin
   -- Set plan limits
   case user_plan
     when 'starter' then plan_limit := 5000;
-    when 'pro' then plan_limit := 10000000;
-    when 'max' then plan_limit := 2147483647; -- Max bigint value (effectively infinite)
+            when 'pro' then plan_limit := 2000000;
+        when 'max' then plan_limit := 10000000;
     else plan_limit := 5000; -- default to starter
   end case;
   

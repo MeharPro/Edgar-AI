@@ -115,12 +115,12 @@ export async function POST(req: NextRequest) {
       plan,
       limit,
       currentCycleTotal,
-      wouldExceed: limit !== "infinite" && currentCycleTotal >= limit,
+              wouldExceed: currentCycleTotal >= limit,
       cycleUsageCount: cycleUsage?.length || 0
     });
 
     // STRICT: Check if this request would exceed the billing cycle limit
-    if (limit !== "infinite" && currentCycleTotal >= limit) {
+          if (currentCycleTotal >= limit) {
       console.log(`🚫 BLOCKED: User ${userId} has exceeded limit (${currentCycleTotal}/${limit})`);
       return NextResponse.json({ 
         error: "REQUEST DENIED - Billing cycle limit exceeded",
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ADDITIONAL SAFETY: Block if they're very close to the limit (within 100 tokens)
-    if (limit !== "infinite" && currentCycleTotal >= (limit - 100)) {
+            if (currentCycleTotal >= (limit - 100)) {
       console.log(`🚫 BLOCKED: User ${userId} is too close to limit (${currentCycleTotal}/${limit})`);
       return NextResponse.json({ 
         error: "REQUEST DENIED - Approaching billing cycle limit",

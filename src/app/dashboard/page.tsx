@@ -207,8 +207,8 @@ export default function DashboardPage() {
   const getPlanLimit = (plan: string) => {
     switch (plan) {
       case "starter": return "5,000";
-      case "pro": return "10M";
-      case "max": return "∞";
+      case "pro": return "2M";
+              case "max": return "10M";
       default: return "5,000";
     }
   };
@@ -508,7 +508,7 @@ export default function DashboardPage() {
                 Welcome to {userInfo?.plan === "max" ? "Max" : "Pro"}!
               </h2>
               <p className="text-white/80 mb-6">
-                You now have access to {userInfo?.plan === "max" ? "unlimited" : "10 million"} tokens per month!
+                You now have access to {userInfo?.plan === "max" ? "10 million" : "2 million"} tokens per month!
               </p>
               <div className="space-y-3 mb-6 text-left">
                 <div className="flex items-center text-white/80">

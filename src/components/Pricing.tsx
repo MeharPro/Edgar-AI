@@ -23,7 +23,7 @@ const TIERS: Tier[] = [
     name: "Pro",
     price: "$20",
     tagline: "Scale confidently",
-    tokens: "10M tokens/mo",
+            tokens: "2M tokens/mo",
     features: [
       "Priority capacity",
       "Faster plan/act cycles",
