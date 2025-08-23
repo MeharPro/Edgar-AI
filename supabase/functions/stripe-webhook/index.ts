@@ -12,9 +12,51 @@ function toTimestamp(unix) {
 }
 
 function inferPlanFromPaymentLinkUrl(session) {
-  const url = session.after_expiration?.recovery?.url || '';
-  if (url.includes('Vy01')) return 'pro';
-  if (url.includes('Vy02')) return 'max';
+  console.log('Inferring plan from session:', {
+    recovery_url: session.after_expiration?.recovery?.url,
+    success_url: session.success_url,
+    cancel_url: session.cancel_url,
+    metadata: session.metadata
+  });
+  
+  // Check metadata first
+  if (session.metadata?.plan) {
+    console.log('Plan found in metadata:', session.metadata.plan);
+    return session.metadata.plan;
+  }
+  
+  // Check URLs
+  const urls = [
+    session.after_expiration?.recovery?.url,
+    session.success_url,
+    session.cancel_url
+  ].filter(Boolean);
+  
+  for (const url of urls) {
+    if (url.includes('Vy01')) {
+      console.log('Plan inferred from URL (Vy01): pro');
+      return 'pro';
+    }
+    if (url.includes('Vy02')) {
+      console.log('Plan inferred from URL (Vy02): max');
+      return 'max';
+    }
+  }
+  
+  // Check line items for price information
+  if (session.line_items?.data?.[0]?.price?.nickname) {
+    const nickname = session.line_items.data[0].price.nickname.toLowerCase();
+    if (nickname.includes('pro')) {
+      console.log('Plan inferred from price nickname (pro): pro');
+      return 'pro';
+    }
+    if (nickname.includes('max')) {
+      console.log('Plan inferred from price nickname (max): max');
+      return 'max';
+    }
+  }
+  
+  console.log('No plan found, defaulting to pro');
   return 'pro'; // default fallback
 }
 
@@ -36,14 +78,22 @@ function choosePlan(priceId, nickname) {
 async function upsertUser(supabase, key, payload) {
   console.log(`Attempting to upsert user with key: ${key}`, payload);
   
-  const { data: existingUser } = await supabase
+  const { data: existingUser, error: selectError } = await supabase
     .from('users')
-    .select('id')
+    .select('id, plan')
     .or(`id.eq.${key},email.eq.${key}`)
     .single();
 
+  if (selectError) {
+    console.error('Error finding user:', selectError);
+    throw selectError;
+  }
+
+  console.log('Found existing user:', existingUser);
+
   if (existingUser) {
     // Update by user ID
+    console.log(`Updating user ${existingUser.id} from plan ${existingUser.plan} to ${payload.plan}`);
     const { error } = await supabase
       .from('users')
       .update(payload)
@@ -53,7 +103,7 @@ async function upsertUser(supabase, key, payload) {
       console.error('Error updating user:', error);
       throw error;
     }
-    console.log(`Successfully updated user ${existingUser.id}`);
+    console.log(`Successfully updated user ${existingUser.id} with plan ${payload.plan}`);
   } else {
     // Try to find by email if key is not an email
     if (!key.includes('@')) {
@@ -61,6 +111,7 @@ async function upsertUser(supabase, key, payload) {
       return;
     }
     
+    console.log(`Updating user by email: ${key} to plan ${payload.plan}`);
     const { error } = await supabase
       .from('users')
       .update(payload)
@@ -70,7 +121,7 @@ async function upsertUser(supabase, key, payload) {
       console.error('Error updating user by email:', error);
       throw error;
     }
-    console.log(`Successfully updated user by email: ${key}`);
+    console.log(`Successfully updated user by email: ${key} with plan ${payload.plan}`);
   }
 }
 
@@ -208,8 +259,9 @@ serve(async (req) => {
         };
 
         if (email) {
+          console.log(`About to update user ${email} with payload:`, payload);
           await upsertUser(supabase, email, payload);
-          console.log(`Updated user ${email} with plan ${inferredPlan} and plan_joined_at`);
+          console.log(`Successfully updated user ${email} with plan ${inferredPlan} and plan_joined_at`);
         } else {
           console.error('No email found in checkout session');
         }
