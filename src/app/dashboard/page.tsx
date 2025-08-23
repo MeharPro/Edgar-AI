@@ -248,7 +248,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
       {/* Subscription Status */}
       {userInfo && userInfo.plan !== "starter" && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
