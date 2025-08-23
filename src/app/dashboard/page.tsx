@@ -19,6 +19,7 @@ interface UserInfo {
   lifetime_usage: number;
   subscription_status?: string;
   current_period_end?: string;
+  stripe_customer_id?: string;
 }
 
 interface UsageDetails {
@@ -74,23 +75,31 @@ export default function DashboardPage() {
 
   const handleManageSubscription = async () => {
     try {
-      const response = await fetch('/api/stripe/create-portal-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Check if user has a Stripe customer ID
+      if (userInfo?.stripe_customer_id) {
+        // Preferred: customer-specific session (no email step)
+        const response = await fetch('/api/stripe/create-portal-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (response.ok) {
-        const { url } = await response.json();
-        window.location.href = url;
-      } else {
-        const error = await response.json();
-        alert(`Error: ${error.error}`);
+        if (response.ok) {
+          const { url } = await response.json();
+          window.location.href = url;
+          return;
+        } else {
+          console.log('Portal session creation failed, using fallback');
+        }
       }
+      
+      // Fallback: generic login link
+      window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
     } catch (error) {
       console.error('Error creating portal session:', error);
-      alert('Failed to open subscription management. Please try again.');
+      // Fallback to generic login
+      window.location.href = "https://billing.stripe.com/p/login/dRm14ob2I4Mfflo3SR4Vy00";
     }
   };
 
@@ -218,7 +227,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Subscription Status */}
-      {userInfo && userInfo.plan !== "starter" && (
+      {userInfo && userInfo.plan !== "starter" && isSubscriptionActive() && (
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-white text-lg font-medium">Subscription Status</h2>
