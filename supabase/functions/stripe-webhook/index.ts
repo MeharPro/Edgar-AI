@@ -78,11 +78,29 @@ function choosePlan(priceId, nickname) {
 async function upsertUser(supabase, key, payload) {
   console.log(`Attempting to upsert user with key: ${key}`, payload);
   
-  const { data: existingUser, error: selectError } = await supabase
-    .from('users')
-    .select('id, plan')
-    .or(`id.eq.${key},email.eq.${key}`)
-    .single();
+  let existingUser;
+  let selectError;
+  
+  // Check if key is an email or UUID
+  if (key.includes('@')) {
+    // Key is an email, search by email
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, plan')
+      .eq('email', key)
+      .single();
+    existingUser = data;
+    selectError = error;
+  } else {
+    // Key is a UUID, search by ID
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, plan')
+      .eq('id', key)
+      .single();
+    existingUser = data;
+    selectError = error;
+  }
 
   if (selectError) {
     console.error('Error finding user:', selectError);
@@ -105,23 +123,7 @@ async function upsertUser(supabase, key, payload) {
     }
     console.log(`Successfully updated user ${existingUser.id} with plan ${payload.plan}`);
   } else {
-    // Try to find by email if key is not an email
-    if (!key.includes('@')) {
-      console.error('User not found and key is not an email:', key);
-      return;
-    }
-    
-    console.log(`Updating user by email: ${key} to plan ${payload.plan}`);
-    const { error } = await supabase
-      .from('users')
-      .update(payload)
-      .eq('email', key);
-    
-    if (error) {
-      console.error('Error updating user by email:', error);
-      throw error;
-    }
-    console.log(`Successfully updated user by email: ${key} with plan ${payload.plan}`);
+    console.error('User not found for key:', key);
   }
 }
 
