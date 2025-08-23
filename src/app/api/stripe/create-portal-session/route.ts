@@ -103,9 +103,12 @@ export async function POST() {
       }, { status: 422 });
     }
     
+    const returnUrl = `https://edgar.daybot.ca/dashboard?t=${Date.now()}`;
+    console.log('create-portal-session: Creating portal session with return URL:', returnUrl);
+    
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
-      return_url: `https://edgar.daybot.ca/dashboard`,
+      return_url: returnUrl,
     });
 
     console.log('create-portal-session: Portal session created successfully', {
