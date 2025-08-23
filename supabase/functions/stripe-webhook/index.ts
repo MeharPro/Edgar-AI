@@ -121,6 +121,20 @@ async function upsertUser(supabase, key, payload) {
       console.error('Error updating user:', error);
       throw error;
     }
+    
+    // Verify the update actually happened
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('users')
+      .select('plan')
+      .eq('id', existingUser.id)
+      .single();
+    
+    if (verifyError) {
+      console.error('Error verifying update:', verifyError);
+    } else {
+      console.log(`Update verification: user ${existingUser.id} plan is now ${verifyData.plan}`);
+    }
+    
     console.log(`Successfully updated user ${existingUser.id} with plan ${payload.plan}`);
   } else {
     console.error('User not found for key:', key);
@@ -214,12 +228,31 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
+    console.log('Supabase connection details:', {
+      url: supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      serviceKeyLength: supabaseServiceKey?.length
+    });
+    
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Supabase environment variables not configured');
       return new Response('Supabase not configured', { status: 500, headers: corsHeaders });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Test the connection
+    const { data: testData, error: testError } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
+    
+    if (testError) {
+      console.error('Supabase connection test failed:', testError);
+      return new Response('Database connection failed', { status: 500, headers: corsHeaders });
+    }
+    
+    console.log('Supabase connection test successful');
 
     // Check for idempotency
     const { data: existingEvent } = await supabase
