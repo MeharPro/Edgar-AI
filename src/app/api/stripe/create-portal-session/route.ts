@@ -103,8 +103,15 @@ export async function POST() {
       }, { status: 422 });
     }
     
-    const returnUrl = `https://edgar.daybot.ca/dashboard?t=${Date.now()}`;
-    console.log('create-portal-session: Creating portal session with return URL:', returnUrl);
+    const base = process.env.SITE_URL || "http://localhost:8080"; // dev only
+    const returnUrl = `${base.replace(/\/+$/, "")}/dashboard`;
+    
+    console.log("Creating portal session", { 
+      customerId: user.stripe_customer_id, 
+      returnUrl, 
+      mode: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") ? "live" : "test",
+      siteUrl: process.env.SITE_URL
+    });
     
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
