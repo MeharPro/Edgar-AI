@@ -6,13 +6,14 @@ interface UserData {
   total_tokens: number;
   subscription_status?: string;
   current_period_end?: string;
+  stripe_customer_id?: string;
 }
 
 export async function ensureUserByEmail(email: string): Promise<UserData | null> {
   const { data } = await supabaseAdmin
     .from("users")
     .upsert({ email }, { onConflict: "email" })
-    .select("id, plan, total_tokens, subscription_status, current_period_end")
+    .select("id, plan, total_tokens, subscription_status, current_period_end, stripe_customer_id")
     .single();
   if (!data) return null;
   
@@ -22,7 +23,8 @@ export async function ensureUserByEmail(email: string): Promise<UserData | null>
     plan: userData.plan,
     total_tokens: userData.total_tokens || 0,
     subscription_status: userData.subscription_status,
-    current_period_end: userData.current_period_end
+    current_period_end: userData.current_period_end,
+    stripe_customer_id: userData.stripe_customer_id
   };
 }
 

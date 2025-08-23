@@ -22,6 +22,7 @@ export async function GET() {
     plan: user.plan || "starter", 
     lifetime_usage: lifetimeTotal,
     subscription_status: user.subscription_status || "inactive",
-    current_period_end: user.current_period_end || null
+    current_period_end: user.current_period_end || null,
+    stripe_customer_id: user.stripe_customer_id || null
   });
 }
