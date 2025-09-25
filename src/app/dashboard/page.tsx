@@ -12,6 +12,10 @@ interface UsageSummary {
   total_completion: number;
   billing_cycle_start: string;
   billing_charge_date: string;
+  base_limit?: number;
+  rollover_tokens?: number;
+  effective_limit?: number;
+  remaining_tokens?: number;
 }
 
 interface UserInfo {
@@ -319,6 +323,9 @@ export default function DashboardPage() {
           <p className="text-white/70 text-sm">This billing cycle</p>
           <p className="mt-2 text-3xl font-semibold text-white">{usageSummary?.total_charged?.toLocaleString() || "0"}</p>
           <p className="text-white/60 text-sm">Tokens used</p>
+          {typeof usageSummary?.remaining_tokens === 'number' && (
+            <p className="text-white/60 text-xs mt-1">Remaining: {usageSummary.remaining_tokens.toLocaleString()}</p>
+          )}
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <p className="text-white/70 text-sm">Plan</p>
@@ -333,9 +340,13 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
           <p className="text-white/70 text-sm">Plan limit</p>
           <p className="mt-2 text-3xl font-semibold text-white">
-            {getPlanLimit(userInfo?.plan || "starter")}
+            {usageSummary?.effective_limit?.toLocaleString() ?? getPlanLimit(userInfo?.plan || "starter")}
           </p>
-          <p className="text-white/60 text-sm">Per billing cycle</p>
+          <p className="text-white/60 text-sm">
+            {typeof usageSummary?.rollover_tokens === 'number'
+              ? `Base ${getPlanLimit(userInfo?.plan || "starter")} + Rollover ${usageSummary.rollover_tokens.toLocaleString()}`
+              : 'Per billing cycle'}
+          </p>
         </div>
       </div>
 
@@ -391,6 +402,14 @@ export default function DashboardPage() {
           <div className="flex justify-between text-white/80 text-sm">
             <span>Next Charge:</span>
             <span>{usageSummary?.billing_charge_date ? new Date(usageSummary.billing_charge_date).toLocaleDateString() : '—'}</span>
+          </div>
+          <div className="flex justify-between text-white/80 text-sm">
+            <span>Rollover this cycle:</span>
+            <span>{typeof usageSummary?.rollover_tokens === 'number' ? usageSummary.rollover_tokens.toLocaleString() : '—'}</span>
+          </div>
+          <div className="flex justify-between text-white/80 text-sm">
+            <span>Effective limit:</span>
+            <span>{typeof usageSummary?.effective_limit === 'number' ? usageSummary.effective_limit.toLocaleString() : '—'}</span>
           </div>
         </div>
       </div>
@@ -537,5 +556,4 @@ export default function DashboardPage() {
     </div>
   );
 }
-
 

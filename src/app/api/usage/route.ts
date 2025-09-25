@@ -33,7 +33,7 @@ export async function GET() {
   }
   
   const currentCycleEnd = new Date(currentCycleStart);
-  currentCycleEnd.setDate(currentCycleEnd.getDate() + 30.5);
+  currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1);
   
   const { data: details } = await supabaseAdmin
     .from("usage_details")
@@ -50,5 +50,4 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
 

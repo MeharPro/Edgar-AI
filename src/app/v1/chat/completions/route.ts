@@ -84,12 +84,25 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 User authenticated: ${userId}`);
 
-    // Check plan limits before processing
-    const { data: user } = await supabaseAdmin.from("users").select("plan").eq("id", userId).single();
-    const plan = (user?.plan || "starter") as keyof typeof PLAN_LIMITS;
-    const limit = PLAN_LIMITS[plan];
+    // Apply rollover for this user's new cycle (idempotent in SQL)
+    try {
+      await supabaseAdmin.rpc("apply_token_rollover", { p_user_id: userId });
+    } catch (e) {
+      console.warn("⚠️ apply_token_rollover failed or unavailable:", e);
+    }
 
-    console.log(`🔍 User plan: ${plan}, limit: ${limit}`);
+    // Check plan and rollover before processing
+    const { data: user } = await supabaseAdmin
+      .from("users")
+      .select("plan, rollover_tokens")
+      .eq("id", userId)
+      .single();
+    const plan = (user?.plan || "starter") as keyof typeof PLAN_LIMITS;
+    const baseLimit = PLAN_LIMITS[plan];
+    const rolloverTokens = Number((user as { rollover_tokens?: number })?.rollover_tokens || 0);
+    const effectiveLimit = baseLimit + rolloverTokens;
+
+    console.log(`🔍 User plan: ${plan}, base: ${baseLimit}, rollover: ${rolloverTokens}, effective: ${effectiveLimit}`);
 
     // Check current billing cycle usage
     const { data: billingCycleUsage } = await supabaseAdmin.rpc("get_current_billing_cycle_start", {
@@ -113,33 +126,39 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 Limit check for user ${userId}:`, {
       plan,
-      limit,
+      baseLimit,
+      rolloverTokens,
+      effectiveLimit,
       currentCycleTotal,
-              wouldExceed: currentCycleTotal >= limit,
+      wouldExceed: currentCycleTotal >= effectiveLimit,
       cycleUsageCount: cycleUsage?.length || 0
     });
 
     // STRICT: Check if this request would exceed the billing cycle limit
-          if (currentCycleTotal >= limit) {
-      console.log(`🚫 BLOCKED: User ${userId} has exceeded limit (${currentCycleTotal}/${limit})`);
+          if (currentCycleTotal >= effectiveLimit) {
+      console.log(`🚫 BLOCKED: User ${userId} has exceeded limit (${currentCycleTotal}/${effectiveLimit})`);
       return NextResponse.json({ 
         error: "REQUEST DENIED - Billing cycle limit exceeded",
-        details: `You have used ${currentCycleTotal.toLocaleString()} tokens out of ${limit.toLocaleString()} allowed. Please upgrade your plan to continue.`,
+        details: `You have used ${currentCycleTotal.toLocaleString()} tokens out of ${effectiveLimit.toLocaleString()} allowed (includes rollover). Please upgrade your plan to continue.`,
         status: "blocked",
         current_usage: currentCycleTotal,
-        limit: limit
+        limit: effectiveLimit,
+        base_limit: baseLimit,
+        rollover: rolloverTokens
       }, { status: 402 });
     }
 
     // ADDITIONAL SAFETY: Block if they're very close to the limit (within 100 tokens)
-            if (currentCycleTotal >= (limit - 100)) {
-      console.log(`🚫 BLOCKED: User ${userId} is too close to limit (${currentCycleTotal}/${limit})`);
+            if (currentCycleTotal >= (effectiveLimit - 100)) {
+      console.log(`🚫 BLOCKED: User ${userId} is too close to limit (${currentCycleTotal}/${effectiveLimit})`);
       return NextResponse.json({ 
         error: "REQUEST DENIED - Approaching billing cycle limit",
-        details: `You have used ${currentCycleTotal.toLocaleString()} tokens out of ${limit.toLocaleString()} allowed. Please upgrade your plan to continue.`,
+        details: `You have used ${currentCycleTotal.toLocaleString()} tokens out of ${effectiveLimit.toLocaleString()} allowed (includes rollover). Please upgrade your plan to continue.`,
         status: "blocked",
         current_usage: currentCycleTotal,
-        limit: limit
+        limit: effectiveLimit,
+        base_limit: baseLimit,
+        rollover: rolloverTokens
       }, { status: 402 });
     }
 
@@ -201,7 +220,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Make request
-    console.log(`🔍 Sending to OpenAI:`, {
+    console.log(`🔍 Sending to upstream:`, {
       endpoint,
       payload: providerPayload,
       headers: Object.keys(headers)
@@ -215,25 +234,25 @@ export async function POST(req: NextRequest) {
 
     const result = await upstream.json();
 
-    console.log(`🔍 OpenAI response:`, {
+    console.log(`🔍 Upstream response:`, {
       status: upstream.status,
-      usage: result.usage,
-      choices: result.choices?.length || 0,
-      content: result.choices?.[0]?.message?.content?.substring(0, 100) || 'No content'
+      usage: (result as any).usage,
+      choices: (result as any).choices?.length || 0,
+      content: (result as any).choices?.[0]?.message?.content?.substring(0, 100) || 'No content'
     });
 
     // Extract completion tokens (output only) from response
     let completionTokens = 0;
     let promptTokens = 0;
-    if (provider === "openai" && result.usage) {
-      completionTokens = result.usage.completion_tokens || 0;
-      promptTokens = result.usage.prompt_tokens || 0;
-    } else if (provider === "anthropic" && result.usage) {
-      completionTokens = result.usage.output_tokens || 0;
-      promptTokens = result.usage.input_tokens || 0;
-    } else if (provider === "google" && result.usageMetadata) {
-      completionTokens = result.usageMetadata.candidatesTokenCount || 0;
-      promptTokens = result.usageMetadata.promptTokenCount || 0;
+    if (provider === "openai" && (result as any).usage) {
+      completionTokens = (result as any).usage.completion_tokens || 0;
+      promptTokens = (result as any).usage.prompt_tokens || 0;
+    } else if (provider === "anthropic" && (result as any).usage) {
+      completionTokens = (result as any).usage.output_tokens || 0;
+      promptTokens = (result as any).usage.input_tokens || 0;
+    } else if (provider === "google" && (result as any).usageMetadata) {
+      completionTokens = (result as any).usageMetadata.candidatesTokenCount || 0;
+      promptTokens = (result as any).usageMetadata.promptTokenCount || 0;
     }
 
     console.log(`OpenAI-compatible API usage for ${provider}/${model}:`, {
@@ -264,7 +283,7 @@ export async function POST(req: NextRequest) {
     } else {
       console.log(`✅ Successfully recorded ${promptTokens + completionTokens} total tokens for user ${userId} (request: ${fullRequestId})`);
       
-      // Update monthly usage
+      // Update monthly usage (billing-cycle aware)
       const { error: updateError } = await supabaseAdmin.rpc("update_monthly_usage_and_check_limit", {
         p_user_id: userId,
         p_tokens_to_add: promptTokens + completionTokens
@@ -293,7 +312,7 @@ export async function POST(req: NextRequest) {
           index: 0,
           message: {
             role: "assistant",
-            content: result.content?.[0]?.text || ""
+            content: (result as any).content?.[0]?.text || ""
           },
           finish_reason: "stop"
         }],
@@ -314,7 +333,7 @@ export async function POST(req: NextRequest) {
           index: 0,
           message: {
             role: "assistant",
-            content: result.candidates?.[0]?.content?.parts?.[0]?.text || ""
+            content: (result as any).candidates?.[0]?.content?.parts?.[0]?.text || ""
           },
           finish_reason: "stop"
         }],
