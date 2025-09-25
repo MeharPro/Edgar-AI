@@ -5,9 +5,9 @@ export default function RolloverPromo() {
         <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-purple-950/50 via-purple-900/30 to-black p-8 md:p-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
             <div className="md:col-span-2">
-              <h3 className="text-3xl font-semibold text-white tracking-tight">Token Rollover</h3>
+              <h3 className="text-3xl font-semibold text-white tracking-tight">Token Rollover (Paid Plans)</h3>
               <p className="mt-3 text-white/80 max-w-2xl">
-                Unused tokens automatically roll into your next billing cycle, boosting your monthly allowance. We cap rollover at your plan limit and apply it at cycle start — fully automatic and visible in your dashboard.
+                Unused tokens on Pro and Max plans automatically roll into your next billing cycle, boosting your monthly allowance. We cap rollover at your plan limit and apply it at cycle start — fully automatic and visible in your dashboard.
               </p>
               <ul className="mt-6 space-y-2 text-white/80 text-sm">
                 <li className="flex items-start gap-2"><span className="mt-1 size-1.5 rounded-full bg-purple-400" /> Carries over unused tokens from the previous cycle</li>
@@ -29,4 +29,3 @@ export default function RolloverPromo() {
     </section>
   );
 }
-

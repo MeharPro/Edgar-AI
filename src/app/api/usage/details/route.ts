@@ -27,7 +27,8 @@ export async function GET() {
     .single();
   const plan = (userRow?.plan || 'starter') as keyof typeof PLAN_LIMITS;
   const baseLimit = PLAN_LIMITS[plan];
-  const rolloverTokens = Number((userRow as { rollover_tokens?: number })?.rollover_tokens || 0);
+  const rawRollover = Number((userRow as { rollover_tokens?: number })?.rollover_tokens || 0);
+  const rolloverTokens = plan === 'starter' ? 0 : rawRollover;
 
   // Get recent usage (last 100 calls) for the table
   const { data: details } = await supabaseAdmin

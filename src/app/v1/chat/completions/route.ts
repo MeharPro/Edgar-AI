@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
       .single();
     const plan = (user?.plan || "starter") as keyof typeof PLAN_LIMITS;
     const baseLimit = PLAN_LIMITS[plan];
-    const rolloverTokens = Number((user as { rollover_tokens?: number })?.rollover_tokens || 0);
+    const rawRollover = Number((user as { rollover_tokens?: number })?.rollover_tokens || 0);
+    const rolloverTokens = plan === "starter" ? 0 : rawRollover;
     const effectiveLimit = baseLimit + rolloverTokens;
 
     console.log(`🔍 User plan: ${plan}, base: ${baseLimit}, rollover: ${rolloverTokens}, effective: ${effectiveLimit}`);
