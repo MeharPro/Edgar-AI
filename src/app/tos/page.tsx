@@ -40,7 +40,7 @@ export default async function TermsOfServicePage() {
   let md = "";
   try {
     md = await fs.readFile(process.cwd() + "/tos.md", "utf8");
-  } catch (e) {
+  } catch {
     md = "# Terms of Service\n\nThe terms document could not be loaded.";
   }
 
@@ -57,4 +57,3 @@ export default async function TermsOfServicePage() {
     </div>
   );
 }
-

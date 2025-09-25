@@ -232,27 +232,54 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(providerPayload),
     });
 
-    const result = await upstream.json();
+    const result: unknown = await upstream.json();
+
+    // Type guards for provider responses
+    type OpenAIResponse = {
+      usage?: { completion_tokens?: number; prompt_tokens?: number };
+      choices?: { message?: { content?: string } }[];
+    };
+    type AnthropicResponse = {
+      usage?: { output_tokens?: number; input_tokens?: number };
+      content?: { text?: string }[];
+    };
+    type GoogleResponse = {
+      usageMetadata?: { candidatesTokenCount?: number; promptTokenCount?: number };
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+
+    const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+    function isOpenAI(r: unknown): r is OpenAIResponse {
+      if (!isObj(r)) return false;
+      return 'usage' in r || 'choices' in r;
+    }
+    function isAnthropic(r: unknown): r is AnthropicResponse {
+      if (!isObj(r)) return false;
+      return 'content' in r || 'usage' in r;
+    }
+    function isGoogle(r: unknown): r is GoogleResponse {
+      if (!isObj(r)) return false;
+      return 'usageMetadata' in r || 'candidates' in r;
+    }
 
     console.log(`🔍 Upstream response:`, {
       status: upstream.status,
-      usage: (result as any).usage,
-      choices: (result as any).choices?.length || 0,
-      content: (result as any).choices?.[0]?.message?.content?.substring(0, 100) || 'No content'
+      hasUsage: isOpenAI(result) ? !!result.usage : isAnthropic(result) ? !!result.usage : isGoogle(result) ? !!result.usageMetadata : false,
+      choiceCount: isOpenAI(result) ? (result.choices?.length || 0) : 0,
     });
 
     // Extract completion tokens (output only) from response
     let completionTokens = 0;
     let promptTokens = 0;
-    if (provider === "openai" && (result as any).usage) {
-      completionTokens = (result as any).usage.completion_tokens || 0;
-      promptTokens = (result as any).usage.prompt_tokens || 0;
-    } else if (provider === "anthropic" && (result as any).usage) {
-      completionTokens = (result as any).usage.output_tokens || 0;
-      promptTokens = (result as any).usage.input_tokens || 0;
-    } else if (provider === "google" && (result as any).usageMetadata) {
-      completionTokens = (result as any).usageMetadata.candidatesTokenCount || 0;
-      promptTokens = (result as any).usageMetadata.promptTokenCount || 0;
+    if (provider === "openai" && isOpenAI(result) && result.usage) {
+      completionTokens = result.usage.completion_tokens ?? 0;
+      promptTokens = result.usage.prompt_tokens ?? 0;
+    } else if (provider === "anthropic" && isAnthropic(result) && result.usage) {
+      completionTokens = result.usage.output_tokens ?? 0;
+      promptTokens = result.usage.input_tokens ?? 0;
+    } else if (provider === "google" && isGoogle(result) && result.usageMetadata) {
+      completionTokens = result.usageMetadata.candidatesTokenCount ?? 0;
+      promptTokens = result.usageMetadata.promptTokenCount ?? 0;
     }
 
     console.log(`OpenAI-compatible API usage for ${provider}/${model}:`, {
@@ -300,9 +327,10 @@ export async function POST(req: NextRequest) {
     // Return OpenAI-compatible response
     if (provider === "openai") {
       // OpenAI response is already in the right format
-      return NextResponse.json(result);
+      return NextResponse.json(result as Record<string, unknown>);
     } else if (provider === "anthropic") {
       // Convert Anthropic response to OpenAI format
+      const contentText = isAnthropic(result) ? (result.content?.[0]?.text || "") : "";
       return NextResponse.json({
         id: `chatcmpl-${Date.now()}`,
         object: "chat.completion",
@@ -312,7 +340,7 @@ export async function POST(req: NextRequest) {
           index: 0,
           message: {
             role: "assistant",
-            content: (result as any).content?.[0]?.text || ""
+            content: contentText
           },
           finish_reason: "stop"
         }],
@@ -324,6 +352,7 @@ export async function POST(req: NextRequest) {
       });
     } else if (provider === "google") {
       // Convert Google response to OpenAI format
+      const text = isGoogle(result) ? (result.candidates?.[0]?.content?.parts?.[0]?.text || "") : "";
       return NextResponse.json({
         id: `chatcmpl-${Date.now()}`,
         object: "chat.completion",
@@ -333,7 +362,7 @@ export async function POST(req: NextRequest) {
           index: 0,
           message: {
             role: "assistant",
-            content: (result as any).candidates?.[0]?.content?.parts?.[0]?.text || ""
+            content: text
           },
           finish_reason: "stop"
         }],

@@ -78,7 +78,7 @@ export default function DashboardPage() {
       clearInterval(refreshInterval);
       clearTimeout(stopRefresh);
     };
-  }, [session, status, router]);
+  }, [session, status, router, fetchDashboardData]);
 
   const handleManageSubscription = async () => {
     try {
@@ -186,19 +186,7 @@ export default function DashboardPage() {
     return isActive && isNotExpired;
   };
 
-  const isPaidSubscriptionActive = () => {
-    // Only check for Pro/Max subscriptions
-    if (userInfo?.plan === "starter") return false;
-    
-    if (!userInfo?.subscription_status) return false;
-    if (!userInfo?.current_period_end) return false;
-    
-    const activeStatuses = ["active", "trialing"];
-    const isActive = activeStatuses.includes(userInfo.subscription_status);
-    const isNotExpired = new Date(userInfo.current_period_end) > new Date();
-    
-    return isActive && isNotExpired;
-  };
+  // (removed unused isPaidSubscriptionActive)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -556,4 +544,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
