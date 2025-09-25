@@ -55,63 +55,6 @@ export default function DashboardPage() {
   const [fullKey, setFullKey] = useState<string | null>(null);
   const [optIn, setOptIn] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (status === "loading") return;
-    if (!session) {
-      router.push("/signin");
-      return;
-    }
-    fetchDashboardData();
-    
-    // Refresh data every 5 seconds for the first minute after page load
-    // This helps catch webhook updates
-    const refreshInterval = setInterval(() => {
-      fetchDashboardData();
-    }, 5000);
-    
-    // Stop refreshing after 1 minute
-    const stopRefresh = setTimeout(() => {
-      clearInterval(refreshInterval);
-    }, 60000);
-    
-    return () => {
-      clearInterval(refreshInterval);
-      clearTimeout(stopRefresh);
-    };
-  }, [session, status, router, fetchDashboardData]);
-
-  const handleManageSubscription = async () => {
-    try {
-      console.log('Manage subscription clicked. User info:', userInfo);
-      
-      // Check if user has a Stripe customer ID
-      if (!userInfo?.stripe_customer_id) {
-        throw new Error('No stripe_customer_id available');
-      }
-
-      // TEMPORARY: No silent fallback - force error to surface
-      const response = await fetch('/api/stripe/create-portal-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`create-portal-session failed: ${response.status} ${text}`);
-      }
-
-      const { url } = await response.json();
-      console.log('Portal session created successfully, redirecting to:', url);
-      window.location.href = url;
-    } catch (error) {
-      console.error('Error creating portal session:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to open subscription management: ${errorMessage}`);
-    }
-  };
-
   const fetchDashboardData = useCallback(async () => {
     try {
       const [usageRes, userRes, detailsRes, splitRes, keysRes, leaderboardRes] = await Promise.all([
@@ -171,6 +114,65 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }, [previousPlan]);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session) {
+      router.push("/signin");
+      return;
+    }
+    fetchDashboardData();
+    
+    // Refresh data every 5 seconds for the first minute after page load
+    // This helps catch webhook updates
+    const refreshInterval = setInterval(() => {
+      fetchDashboardData();
+    }, 5000);
+    
+    // Stop refreshing after 1 minute
+    const stopRefresh = setTimeout(() => {
+      clearInterval(refreshInterval);
+    }, 60000);
+    
+    return () => {
+      clearInterval(refreshInterval);
+      clearTimeout(stopRefresh);
+    };
+  }, [session, status, router, fetchDashboardData]);
+
+  const handleManageSubscription = async () => {
+    try {
+      console.log('Manage subscription clicked. User info:', userInfo);
+      
+      // Check if user has a Stripe customer ID
+      if (!userInfo?.stripe_customer_id) {
+        throw new Error('No stripe_customer_id available');
+      }
+
+      // TEMPORARY: No silent fallback - force error to surface
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`create-portal-session failed: ${response.status} ${text}`);
+      }
+
+      const { url } = await response.json();
+      console.log('Portal session created successfully, redirecting to:', url);
+      window.location.href = url;
+    } catch (error) {
+      console.error('Error creating portal session:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to open subscription management: ${errorMessage}`);
+    }
+  };
+
+  
 
   const isSubscriptionActive = () => {
     // Starter plan is always active (free tier)
