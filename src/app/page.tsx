@@ -1,12 +1,15 @@
 import Hero from "@/components/Hero";
 import FeatureGrid from "@/components/FeatureGrid";
+import RolloverPromo from "@/components/RolloverPromo";
 import Pricing from "@/components/Pricing";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
     <>
       <Hero />
       <FeatureGrid />
+      <RolloverPromo />
       <Pricing />
       <section id="security" className="py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
@@ -16,6 +19,7 @@ export default function Home() {
           </p>
         </div>
       </section>
+      <Footer />
     </>
   );
 }
