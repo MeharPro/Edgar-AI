@@ -321,8 +321,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Add to cache
-    requestCache.set(cacheKey, { timestamp: now, response: result });
+    // Add to cache with safe typing
+    const responseObj: Record<string, unknown> = (typeof result === 'object' && result !== null) ? (result as Record<string, unknown>) : {};
+    requestCache.set(cacheKey, { timestamp: now, response: responseObj });
 
     // Return OpenAI-compatible response
     if (provider === "openai") {
