@@ -168,6 +168,7 @@ export async function POST(req: NextRequest) {
     // Determine provider from model
     let provider: Provider;
     const modelLower = model.toLowerCase();
+    const isGpt5ViaOpenRouter = modelLower === "gpt-5";
     if (modelLower.startsWith("gpt-")) {
       provider = "openai";
     } else if (modelLower.startsWith("claude")) {
@@ -183,9 +184,14 @@ export async function POST(req: NextRequest) {
     let providerPayload: Record<string, unknown>;
 
     if (provider === "openai") {
-      endpoint = PROVIDER_ENDPOINTS.openai;
+      // Route GPT-5 through OpenRouter using OpenAI-compatible API
+      const useOpenRouter = isGpt5ViaOpenRouter;
+      const routedModel = useOpenRouter ? "openai/gpt-5" : model;
+      endpoint = useOpenRouter
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : PROVIDER_ENDPOINTS.openai;
       providerPayload = {
-        model,
+        model: routedModel,
         messages,
         max_tokens,
         temperature,
@@ -214,7 +220,15 @@ export async function POST(req: NextRequest) {
 
     // Set headers
     const headers: Record<string, string> = { "content-type": "application/json" };
-    if (provider === "openai") headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY ?? ""}`;
+    if (provider === "openai") {
+      if (isGpt5ViaOpenRouter) {
+        headers.Authorization = `Bearer ${process.env.OPENROUTER_API_KEY ?? ""}`;
+        if (process.env.OPENROUTER_HTTP_REFERER) headers["HTTP-Referer"] = process.env.OPENROUTER_HTTP_REFERER;
+        if (process.env.OPENROUTER_X_TITLE) headers["X-Title"] = process.env.OPENROUTER_X_TITLE;
+      } else {
+        headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY ?? ""}`;
+      }
+    }
     if (provider === "anthropic") {
       headers["x-api-key"] = process.env.ANTHROPIC_API_KEY ?? "";
       headers["anthropic-version"] = "2023-06-01";
