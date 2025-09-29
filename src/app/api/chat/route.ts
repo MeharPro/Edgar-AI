@@ -123,22 +123,38 @@ export async function POST(req: NextRequest) {
 
     // Route request
     let endpoint: string;
+    const isGpt5ViaOpenRouter = (model || '').toLowerCase() === 'gpt-5';
     if (provider === "google") {
       const m = encodeURIComponent(model);
       const apiKey = encodeURIComponent(process.env.GEMINI_API_KEY ?? "");
       endpoint = `${GOOGLE_BASE}/models/${m}:generateContent?key=${apiKey}`;
     } else {
-      endpoint = PROVIDER_ENDPOINTS[provider as Exclude<Provider, "google">];
+      // Route GPT-5 through OpenRouter using OpenAI-compatible API
+      const useOpenRouter = provider === 'openai' && isGpt5ViaOpenRouter;
+      endpoint = useOpenRouter
+        ? "https://openrouter.ai/api/v1/chat/completions"
+        : PROVIDER_ENDPOINTS[provider as Exclude<Provider, "google">];
     }
 
     const headers: Record<string, string> = { "content-type": "application/json" };
-    if (provider === "openai") headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY ?? ""}`;
+    if (provider === "openai") {
+      const useOpenRouter = isGpt5ViaOpenRouter;
+      if (useOpenRouter) {
+        headers.Authorization = `Bearer ${process.env.OPENROUTER_API_KEY ?? ""}`;
+        if (process.env.OPENROUTER_HTTP_REFERER) headers["HTTP-Referer"] = process.env.OPENROUTER_HTTP_REFERER;
+        if (process.env.OPENROUTER_X_TITLE) headers["X-Title"] = process.env.OPENROUTER_X_TITLE;
+      } else {
+        headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY ?? ""}`;
+      }
+    }
     if (provider === "anthropic") {
       headers["x-api-key"] = process.env.ANTHROPIC_API_KEY ?? "";
       headers["anthropic-version"] = "2023-06-01";
     }
 
-    const providerPayload = buildProviderPayload(provider as Provider, model, messages);
+    // If routing GPT-5 through OpenRouter, use the OpenRouter model ID
+    const effectiveModel = (provider === 'openai' && isGpt5ViaOpenRouter) ? 'openai/gpt-5' : model;
+    const providerPayload = buildProviderPayload(provider as Provider, effectiveModel, messages);
     const upstream = await fetch(endpoint, {
       method: "POST",
       headers,
