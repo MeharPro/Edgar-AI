@@ -19,9 +19,11 @@ export async function GET() {
     const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
       p_user_id: user.id
     });
-    const windowRow = Array.isArray(windowData) ? windowData[0] : (windowData as any);
-    currentCycleStart = new Date((windowRow?.cycle_start as string) || new Date().toISOString());
-    currentCycleEnd = new Date((windowRow?.cycle_end as string) || new Date(Date.now() + 30 * 86400_000).toISOString());
+    type BillingWindow = { cycle_start: string; cycle_end: string };
+    const rows: BillingWindow[] = Array.isArray(windowData) ? (windowData as BillingWindow[]) : [];
+    const windowRow: BillingWindow | undefined = rows[0];
+    currentCycleStart = new Date((windowRow?.cycle_start) || new Date().toISOString());
+    currentCycleEnd = new Date((windowRow?.cycle_end) || new Date(Date.now() + 30 * 86400_000).toISOString());
   } catch (error) {
     console.error('Error getting billing cycle window:', error);
     // Fallback: use user's billing_cycle_start → +1 month
