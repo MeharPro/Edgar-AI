@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 type Props = {
   withText?: boolean;
@@ -10,7 +9,7 @@ type Props = {
 
 export default function Logo({ withText = true, src = "/edgar-logo-svg.svg", size = 32, className }: Props) {
   return (
-    <Link href="/" className="flex items-center gap-2">
+    <span className="flex items-center gap-2">
       <Image
         src={src}
         alt="Edgar logo"
@@ -22,8 +21,7 @@ export default function Logo({ withText = true, src = "/edgar-logo-svg.svg", siz
       {withText && (
         <span className="text-white font-semibold tracking-tight">Edgar</span>
       )}
-    </Link>
+    </span>
   );
 }
-
 

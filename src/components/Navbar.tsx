@@ -58,6 +58,14 @@ export function Navbar() {
               >
                 Leaderboard
               </Link>
+              <a
+                href="https://marketplace.visualstudio.com/items?itemName=DaybotSolutionsInc.edgar-vibe-coding-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Download Extension
+              </a>
               {session && (
                 <Link
                   href="/dashboard"
@@ -149,6 +157,15 @@ export function Navbar() {
               >
                 Leaderboard
               </Link>
+              <a
+                href="https://marketplace.visualstudio.com/items?itemName=DaybotSolutionsInc.edgar-vibe-coding-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-white block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Download Extension
+              </a>
               {session && (
                 <Link
                   href="/dashboard"
@@ -191,5 +208,4 @@ export function Navbar() {
     </nav>
   );
 }
-
 

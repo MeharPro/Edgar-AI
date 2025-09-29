@@ -69,6 +69,14 @@ export default function Hero() {
           >
             Explore features
           </a>
+          <a
+            href="https://marketplace.visualstudio.com/items?itemName=DaybotSolutionsInc.edgar-vibe-coding-ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-white text-base font-medium px-6 py-3 opacity-0"
+          >
+            Download Extension
+          </a>
         </div>
       </div>
       <style jsx>{`
@@ -150,5 +158,4 @@ export default function Hero() {
     </section>
   );
 }
-
 
