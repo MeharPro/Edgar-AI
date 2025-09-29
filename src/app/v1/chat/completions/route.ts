@@ -111,8 +111,9 @@ export async function POST(req: NextRequest) {
     const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
       p_user_id: userId
     });
-    const currentCycleStart = new Date((windowData as { cycle_start: string })?.cycle_start || new Date().toISOString());
-    const currentCycleEnd = new Date((windowData as { cycle_end: string })?.cycle_end || new Date(Date.now() + 30 * 86400_000).toISOString());
+    const windowRow = Array.isArray(windowData) ? windowData[0] : (windowData as any);
+    const currentCycleStart = new Date((windowRow?.cycle_start as string) || new Date().toISOString());
+    const currentCycleEnd = new Date((windowRow?.cycle_end as string) || new Date(Date.now() + 30 * 86400_000).toISOString());
     
     console.log(`🔍 Billing cycle: ${currentCycleStart.toISOString()} to ${currentCycleEnd.toISOString()}`);
     
