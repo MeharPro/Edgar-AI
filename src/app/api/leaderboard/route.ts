@@ -23,12 +23,14 @@ export async function GET(request: Request) {
     .select("user_id, charged_tokens");
 
   if (type === 'monthly') {
-    // For monthly, get current month start
-    const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
-    currentMonthStart.setHours(0, 0, 0, 0);
-    
-    usageQuery = usageQuery.gte("timestamp", currentMonthStart.toISOString());
+    // Month-to-date using UTC month boundaries to avoid TZ drift
+    const now = new Date();
+    const monthStartUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+    const nextMonthStartUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+
+    usageQuery = usageQuery
+      .gte("timestamp", monthStartUTC.toISOString())
+      .lt("timestamp", nextMonthStartUTC.toISOString());
   }
 
   const { data: usage } = await usageQuery.in("user_id", userIds);
@@ -54,5 +56,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ data: leaderboard });
 }
-
 

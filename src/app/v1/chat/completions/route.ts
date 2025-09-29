@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import bcrypt from "bcryptjs";
 import { PLAN_LIMITS } from "@/lib/tokens";
+import { CONSERVATIVE_RATE_LIMIT } from "@/lib/features";
 
 type Provider = "openai" | "anthropic" | "google";
 
@@ -57,14 +58,15 @@ export async function POST(req: NextRequest) {
 
     console.log(`🚀 Processing request: ${fullRequestId}`);
 
-    // Check in-memory cache for recent duplicate requests
+    // Optional: conservative duplicate suppression (disabled by default)
     const now = Date.now();
     const cacheKey = `${apiKey.slice(0, 10)}_${requestHash}`;
-    const cached = requestCache.get(cacheKey);
-    
-    if (cached && (now - cached.timestamp) < 5000) {
-      console.log(`🛑 Duplicate request detected in memory cache: ${fullRequestId}`);
-      return NextResponse.json(cached.response);
+    if (CONSERVATIVE_RATE_LIMIT) {
+      const cached = requestCache.get(cacheKey);
+      if (cached && (now - cached.timestamp) < 5000) {
+        console.log(`🛑 Duplicate request detected in memory cache: ${fullRequestId}`);
+        return NextResponse.json(cached.response);
+      }
     }
 
     // Validate API key
@@ -105,14 +107,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 User plan: ${plan}, base: ${baseLimit}, rollover: ${rolloverTokens}, effective: ${effectiveLimit}`);
 
-    // Check current billing cycle usage
-    const { data: billingCycleUsage } = await supabaseAdmin.rpc("get_current_billing_cycle_start", {
+    // Check current billing cycle usage (from SQL for correctness)
+    const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
       p_user_id: userId
     });
-    
-    const currentCycleStart = new Date(billingCycleUsage);
-    const currentCycleEnd = new Date(currentCycleStart);
-    currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1); // Add 1 month
+    const currentCycleStart = new Date((windowData as { cycle_start: string })?.cycle_start || new Date().toISOString());
+    const currentCycleEnd = new Date((windowData as { cycle_end: string })?.cycle_end || new Date(Date.now() + 30 * 86400_000).toISOString());
     
     console.log(`🔍 Billing cycle: ${currentCycleStart.toISOString()} to ${currentCycleEnd.toISOString()}`);
     
@@ -336,9 +336,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Add to cache with safe typing
-    const responseObj: Record<string, unknown> = (typeof result === 'object' && result !== null) ? (result as Record<string, unknown>) : {};
-    requestCache.set(cacheKey, { timestamp: now, response: responseObj });
+    // Add to cache only when conservative mode is enabled
+    if (CONSERVATIVE_RATE_LIMIT) {
+      const responseObj: Record<string, unknown> = (typeof result === 'object' && result !== null) ? (result as Record<string, unknown>) : {};
+      requestCache.set(cacheKey, { timestamp: now, response: responseObj });
+    }
 
     // Return OpenAI-compatible response
     if (provider === "openai") {

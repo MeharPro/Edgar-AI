@@ -12,28 +12,27 @@ export async function GET() {
     const user = await ensureUserByEmail(session.user.email);
     if (!user) return NextResponse.json({ tokens: 0, plan: "starter" });
 
-  // Get current billing cycle usage
-  let currentCycleStart;
-  
+  // Get current billing cycle window from SQL
+  let currentCycleStart: Date;
+  let currentCycleEnd: Date;
   try {
-    const { data: billingCycleStart } = await supabaseAdmin.rpc("get_current_billing_cycle_start", {
+    const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
       p_user_id: user.id
     });
-    currentCycleStart = billingCycleStart;
+    currentCycleStart = new Date((windowData as { cycle_start: string })?.cycle_start || new Date().toISOString());
+    currentCycleEnd = new Date((windowData as { cycle_end: string })?.cycle_end || new Date(Date.now() + 30 * 86400_000).toISOString());
   } catch (error) {
-    console.error('Error getting billing cycle start:', error);
-    // Fallback: use user's billing_cycle_start or current date
+    console.error('Error getting billing cycle window:', error);
+    // Fallback: use user's billing_cycle_start → +1 month
     const { data: userData } = await supabaseAdmin
       .from('users')
       .select('billing_cycle_start')
       .eq('id', user.id)
       .single();
-    
-    currentCycleStart = userData?.billing_cycle_start || new Date();
+    currentCycleStart = new Date(userData?.billing_cycle_start || new Date());
+    currentCycleEnd = new Date(currentCycleStart);
+    currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1);
   }
-  
-  const currentCycleEnd = new Date(currentCycleStart);
-  currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1);
   
   const { data: details } = await supabaseAdmin
     .from("usage_details")
@@ -50,4 +49,3 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-

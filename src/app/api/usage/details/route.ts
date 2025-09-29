@@ -38,18 +38,13 @@ export async function GET() {
     .order("timestamp", { ascending: false })
     .limit(100);
 
-  // Get current billing cycle start
-  const { data: billingCycleStart } = await supabaseAdmin.rpc("get_current_billing_cycle_start", {
+  // Get current billing cycle window (SQL authoritative)
+  const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
     p_user_id: user.id
   });
-  
-  const currentCycleStart = new Date(billingCycleStart);
-  const currentCycleEnd = new Date(currentCycleStart);
-  currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1);
-  
-  // Calculate billing charge date (next month)
-  const billingChargeDate = new Date(currentCycleStart);
-  billingChargeDate.setMonth(billingChargeDate.getMonth() + 1);
+  const currentCycleStart = new Date((windowData as { cycle_start: string })?.cycle_start || new Date().toISOString());
+  const currentCycleEnd = new Date((windowData as { cycle_end: string })?.cycle_end || new Date(Date.now() + 30 * 86400_000).toISOString());
+  const billingChargeDate = new Date(currentCycleEnd);
   
   const currentCycleDetails = details?.filter(row => 
     new Date(row.timestamp) >= currentCycleStart && 

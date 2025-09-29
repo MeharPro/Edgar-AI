@@ -33,5 +33,6 @@ Example: `NODE_ENV=production npm run build && npm start`.
 
 ## Security & Configuration Tips
 - Required env vars (local/production): `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE`, provider keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`).
+- Optional feature flags: `CONSERVATIVE_RATE_LIMIT` (default `false`). When `true`, the v1 chat completions API suppresses recent duplicate requests to emulate TPM-style conservative behavior.
 - Stripe integration lives in `supabase/functions/stripe-webhook*` with schema/migrations under `supabase/`; see `STRIPE_INTEGRATION_README.md`.
 - Never commit secrets. Use `.env.local` for development and provider secrets in deployment settings.

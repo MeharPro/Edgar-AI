@@ -57,14 +57,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 User plan: ${plan}, limit: ${limit}`);
 
-    // Check current billing cycle usage
-    const { data: billingCycleUsage } = await supabaseAdmin.rpc("get_current_billing_cycle_start", {
+    // Check current billing cycle usage (from SQL for correctness)
+    const { data: windowData } = await supabaseAdmin.rpc("get_billing_cycle_window", {
       p_user_id: userId
     });
-    
-    const currentCycleStart = new Date(billingCycleUsage);
-    const currentCycleEnd = new Date(currentCycleStart);
-    currentCycleEnd.setMonth(currentCycleEnd.getMonth() + 1); // Add 1 month
+    const currentCycleStart = new Date((windowData as { cycle_start: string })?.cycle_start || new Date().toISOString());
+    const currentCycleEnd = new Date((windowData as { cycle_end: string })?.cycle_end || new Date(Date.now() + 30 * 86400_000).toISOString());
     
     console.log(`🔍 Billing cycle: ${currentCycleStart.toISOString()} to ${currentCycleEnd.toISOString()}`);
     
