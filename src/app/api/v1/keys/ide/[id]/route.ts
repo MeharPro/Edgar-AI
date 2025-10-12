@@ -5,10 +5,7 @@ import { authHeaderToBearer, verifyProviderIdToken, jsonError } from "@/lib/idTo
 
 export const runtime = "nodejs";
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: Request) {
   try {
     const token = authHeaderToBearer(req);
     if (!token) return jsonError("Missing Authorization Bearer token", 401);
@@ -20,7 +17,10 @@ export async function DELETE(
     const userId = ensured?.id as string | undefined;
     if (!userId) return jsonError("Unable to ensure user", 500);
 
-    const keyId = params.id;
+    // Extract key id from URL path to avoid Next.js type friction on context
+    const { pathname } = new URL(req.url);
+    const segments = pathname.split('/');
+    const keyId = segments[segments.length - 1] || segments[segments.length - 2];
 
     // Ensure key belongs to user
     const { data: row } = await supabaseAdmin
