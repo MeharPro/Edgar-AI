@@ -18,6 +18,10 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, account, profile, user }) {
       if (account) token.provider = account.provider;
+      // Capture provider id_token (e.g., Google OIDC) for redirect back to IDE
+      if (account && (account as { id_token?: string }).id_token) {
+        (token as { idToken?: string }).idToken = (account as { id_token?: string }).id_token as string;
+      }
       if (profile && "email" in profile && typeof profile.email === "string") {
         token.email = profile.email;
       }
@@ -28,6 +32,8 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       session.provider = token.provider as string | undefined;
+      // Expose provider id_token to the client session for IDE callback redirect
+      (session as { idToken?: string }).idToken = (token as { idToken?: string }).idToken;
       if (session.user && token.email) session.user.email = token.email as string;
       if (session.user && (token as { name?: string }).name) session.user.name = (token as { name?: string }).name as string;
       return session;
@@ -46,5 +52,4 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-
 
