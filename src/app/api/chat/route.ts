@@ -50,6 +50,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`🔍 User authenticated: ${userId}`);
 
+    // If a caller supplies a user identifier, ensure it matches the authenticated user
+    const requestedUserId = body?.userId ?? body?.user_id ?? null;
+    if (requestedUserId && requestedUserId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Check plan limits before processing
     const { data: user } = await supabaseAdmin.from("users").select("plan").eq("id", userId).single();
     const plan = (user?.plan || "starter") as keyof typeof PLAN_LIMITS;
