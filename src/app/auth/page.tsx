@@ -2,9 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
-export default function AuthEntryPage() {
+export const dynamic = "force-dynamic";
+
+function AuthEntryInner() {
   const sp = useSearchParams();
   const callbackUrl = sp.get("callback_url");
   const state = sp.get("state");
@@ -45,3 +47,10 @@ export default function AuthEntryPage() {
   );
 }
 
+export default function AuthEntryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black text-white"><div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-24"><div className="text-center">Loading…</div></div></div>}>
+      <AuthEntryInner />
+    </Suspense>
+  );
+}
