@@ -3,17 +3,22 @@ import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+type SP = Record<string, string | string[] | undefined>;
+
 export default async function AuthCompletePage({
   searchParams,
 }: {
-  searchParams: { callback_url?: string; state?: string };
+  searchParams: Promise<SP>;
 }) {
   const session = await getServerSession(authOptions);
   const idToken = (session as unknown as { idToken?: string })?.idToken;
   const provider = (session as unknown as { provider?: string })?.provider || "google";
 
-  const callbackUrlRaw = searchParams?.callback_url || "";
-  const state = searchParams?.state || "";
+  const sp = await searchParams;
+  const callbackParam = sp?.callback_url;
+  const stateParam = sp?.state;
+  const callbackUrlRaw = Array.isArray(callbackParam) ? callbackParam[0] : (callbackParam || "");
+  const state = Array.isArray(stateParam) ? stateParam[0] : (stateParam || "");
 
   let destination = "";
   try {
@@ -29,30 +34,28 @@ export default async function AuthCompletePage({
   }
 
   return (
-    <html>
-      <body className="min-h-screen bg-black text-white">
-        <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center space-y-2">
-            <div className="text-white/80">Finalizing sign‑in…</div>
-            {destination ? (
-              <>
-                <div className="text-white/50 text-sm">Redirecting back to your IDE</div>
-                <script dangerouslySetInnerHTML={{ __html: `window.location.replace(${JSON.stringify(destination)});` }} />
-                <a className="underline text-purple-300 text-sm" href={destination}>Click here if not redirected</a>
-              </>
-            ) : (
-              <div className="text-rose-300 text-sm">
-                Unable to complete sign‑in. Please close this tab and try again.
-              </div>
-            )}
-            {!idToken && (
-              <div className="text-amber-300 text-xs mt-2">
-                Tip: Ensure cookies are enabled and that you completed Google sign‑in.
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto max-w-md px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center space-y-2">
+          <div className="text-white/80">Finalizing sign‑in…</div>
+          {destination ? (
+            <>
+              <div className="text-white/50 text-sm">Redirecting back to your IDE</div>
+              <script dangerouslySetInnerHTML={{ __html: `window.location.replace(${JSON.stringify(destination)});` }} />
+              <a className="underline text-purple-300 text-sm" href={destination}>Click here if not redirected</a>
+            </>
+          ) : (
+            <div className="text-rose-300 text-sm">
+              Unable to complete sign‑in. Please close this tab and try again.
+            </div>
+          )}
+          {!idToken && (
+            <div className="text-amber-300 text-xs mt-2">
+              Tip: Ensure cookies are enabled and that you completed sign‑in.
+            </div>
+          )}
         </div>
-      </body>
-    </html>
+      </div>
+    </div>
   );
 }
