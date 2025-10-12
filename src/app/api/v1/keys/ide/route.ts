@@ -20,37 +20,66 @@ export async function POST(req: Request) {
     const ensured = await ensureUserByEmail(email);
     const userId = ensured?.id as string | undefined;
     if (!userId) return jsonError("Unable to ensure user", 500);
-
-    // If a key already exists for this user, do not return plaintext again
-    const { data: existing, error: selectErr } = await supabaseAdmin
-      .from("api_keys")
-      .select("id")
-      .eq("user_id", userId)
-      .limit(1);
-    if (selectErr) {
-      console.error("api_keys select failed:", selectErr.message);
-      return jsonError("Failed to check keys", 500);
-    }
-    if (existing && existing.length > 0) {
-      return NextResponse.json({ created: false });
-    }
+    
+    // Optional label support
+    let label: string | null = null;
+    try {
+      const body = await req.json();
+      if (body && typeof body.label === 'string' && body.label.trim().length > 0) {
+        label = body.label.trim().slice(0, 100);
+      }
+    } catch {}
 
     const apiKey = generateProviderApiKey();
     const hash = await bcrypt.hash(apiKey, 10);
     const prefix = apiKey.slice(0, 10);
 
-    const { error: insertErr } = await supabaseAdmin
+    const { data: inserted, error: insertErr } = await supabaseAdmin
       .from("api_keys")
-      .insert({ user_id: userId, hash, prefix });
+      .insert({ user_id: userId, hash, prefix, label })
+      .select("id, label")
+      .single();
     if (insertErr) {
       console.error("Insert api_keys failed:", insertErr.message);
       return jsonError("Failed to issue key", 500);
     }
 
-    return NextResponse.json({ api_key: apiKey, created: true }, { status: 201 });
+    return NextResponse.json({ api_key: apiKey, id: inserted.id, label: inserted.label ?? null, created: true }, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
     return jsonError(`Key issuance error: ${msg}`, 401);
   }
 }
 
+export async function GET(req: Request) {
+  try {
+    const token = authHeaderToBearer(req);
+    if (!token) return jsonError("Missing Authorization Bearer token", 401);
+    const identity = await verifyProviderIdToken(token);
+    const email = identity.email;
+    if (!email) return jsonError("Email not found in id_token", 401);
+    const ensured = await ensureUserByEmail(email);
+    const userId = ensured?.id as string | undefined;
+    if (!userId) return jsonError("Unable to ensure user", 500);
+
+    const { data, error } = await supabaseAdmin
+      .from("api_keys")
+      .select("id, label, created_at, revoked_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("api_keys list failed:", error.message);
+      return jsonError("Failed to list keys", 500);
+    }
+    const items = (data || []).map((r: any) => ({
+      id: r.id as string,
+      label: (r.label ?? null) as string | null,
+      createdAt: r.created_at as string,
+      revoked: !!r.revoked_at,
+    }));
+    return NextResponse.json({ keys: items });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return jsonError(`List keys error: ${msg}`, 401);
+  }
+}

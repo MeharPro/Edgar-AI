@@ -36,12 +36,13 @@ export async function POST(req: NextRequest) {
 
     const { data: keyRows } = await supabaseAdmin
       .from("api_keys")
-      .select("hash, user_id")
+      .select("hash, user_id, revoked_at")
       .eq("prefix", apiKey.slice(0, 10))
       .order("created_at", { ascending: false })
       .limit(1);
     const keyRow = keyRows?.[0];
     if (!keyRow) return NextResponse.json({ error: "Key not found" }, { status: 401 });
+    if ((keyRow as any).revoked_at) return NextResponse.json({ error: "Key revoked" }, { status: 401 });
     const valid = await bcrypt.compare(apiKey, keyRow.hash);
     if (!valid) return NextResponse.json({ error: "Invalid key" }, { status: 401 });
 
