@@ -32,9 +32,10 @@ export async function DELETE(
     if (!row) return jsonError("Not found", 404);
 
     // Prefer soft revoke (revoked_at), fallback to delete
+    type KeyUpdate = { revoked_at: string };
     const { error: revokeErr } = await supabaseAdmin
       .from("api_keys")
-      .update({ revoked_at: new Date().toISOString() } as any)
+      .update({ revoked_at: new Date().toISOString() } as KeyUpdate)
       .eq("id", keyId);
     if (revokeErr) {
       await supabaseAdmin.from("api_keys").delete().eq("id", keyId);
@@ -46,4 +47,3 @@ export async function DELETE(
     return jsonError(`Delete key error: ${msg}`, 401);
   }
 }
-

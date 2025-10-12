@@ -71,10 +71,12 @@ export async function GET(req: Request) {
       console.error("api_keys list failed:", error.message);
       return jsonError("Failed to list keys", 500);
     }
-    const items = (data || []).map((r: any) => ({
-      id: r.id as string,
-      label: (r.label ?? null) as string | null,
-      createdAt: r.created_at as string,
+    type KeyListRow = { id: string; label: string | null; created_at: string; revoked_at: string | null };
+    const rows: KeyListRow[] = Array.isArray(data) ? (data as unknown as KeyListRow[]) : [];
+    const items = rows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      createdAt: r.created_at,
       revoked: !!r.revoked_at,
     }));
     return NextResponse.json({ keys: items });

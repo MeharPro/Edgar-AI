@@ -72,11 +72,11 @@ export async function verifyProviderIdToken(idToken: string): Promise<VerifiedId
   // Try Google first (fast tokeninfo endpoint)
   try {
     return await verifyGoogleIdToken(idToken);
-  } catch (_) {}
+  } catch {}
   // Then try GitHub OIDC if configured
   try {
     return await verifyGithubOIDCIdToken(idToken);
-  } catch (_) {}
+  } catch {}
   throw new Error("Unable to verify id_token");
 }
 

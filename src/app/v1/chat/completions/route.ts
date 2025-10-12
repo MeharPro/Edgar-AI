@@ -17,6 +17,8 @@ interface ChatCompletionRequest {
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
+  userId?: string;
+  user_id?: string;
 }
 
 const PROVIDER_ENDPOINTS: Record<Exclude<Provider, "google">, string> = {
@@ -76,9 +78,10 @@ export async function POST(req: NextRequest) {
       .eq("prefix", apiKey.slice(0, 10))
       .order("created_at", { ascending: false })
       .limit(1);
-    const keyRow = keyRows?.[0];
+    type KeyRow = { hash: string; user_id: string; revoked_at?: string | null };
+    const keyRow = (keyRows?.[0] as KeyRow | undefined);
     if (!keyRow) return NextResponse.json({ error: "Key not found" }, { status: 401 });
-    if ((keyRow as any).revoked_at) return NextResponse.json({ error: "Key revoked" }, { status: 401 });
+    if (keyRow.revoked_at) return NextResponse.json({ error: "Key revoked" }, { status: 401 });
     const valid = await bcrypt.compare(apiKey, keyRow.hash);
     if (!valid) return NextResponse.json({ error: "Invalid key" }, { status: 401 });
 
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
     console.log(`🔍 User authenticated: ${userId}`);
 
     // Prevent user impersonation if a client-supplied user identifier is present
-    const requestedUserId = (body as any)?.userId ?? (body as any)?.user_id ?? null;
+    const requestedUserId: string | null = (typeof body.userId === 'string' ? body.userId : (typeof body.user_id === 'string' ? body.user_id : null));
     if (requestedUserId && requestedUserId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

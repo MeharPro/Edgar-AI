@@ -44,9 +44,10 @@ export async function POST(req: Request) {
 
     // Revoke previous key: prefer setting revoked_at, fallback to delete if column missing
     if (prevId) {
+      type KeyUpdate = { revoked_at: string };
       const { error: revokeErr } = await supabaseAdmin
         .from("api_keys")
-        .update({ revoked_at: new Date().toISOString() } as any)
+        .update({ revoked_at: new Date().toISOString() } as KeyUpdate)
         .eq("id", prevId);
       if (revokeErr) {
         // If update fails (column might not exist), attempt delete to ensure rotation semantics
@@ -60,4 +61,3 @@ export async function POST(req: Request) {
     return jsonError(`Rotate key error: ${msg}`, 401);
   }
 }
-
