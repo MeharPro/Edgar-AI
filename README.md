@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Edgar Landing Page 
 
-## Getting Started
+This repository hosts the source code for the official landing page of **Edgar**, the Vibe Coding AI agent. The live website is accessible at [daybot.ca](https://daybot.ca).
 
-First, run the development server:
+[![Visit Website](https://img.shields.io/badge/Visit-daybot.ca-blue?style=for-the-badge&logo=google-chrome)](https://daybot.ca)
+[![VS Code Extension](https://img.shields.io/visual-studio-marketplace/v/DaybotSolutionsInc.edgar-vibe-coding-ai?style=for-the-badge&label=VS%20Code%20Extension&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=DaybotSolutionsInc.edgar-vibe-coding-ai)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 About Edgar
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Edgar** is a "VibeCoding" agent designed to ship real applications across web, desktop, and mobile platforms. Unlike standard autocomplete tools, Edgar is built to **Plan, Act, and Deliver**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+It allows developers to "send the command and sleep," handling complex tasks with premium guardrails, ast-safe editing, and developer ergonomics.
 
-## Learn More
+### 🌟 Key Features
 
-To learn more about Next.js, take a look at the following resources:
+* **Cross-Platform Mastery:**
+    * **Web:** React, Next.js, HTML, CSS, JS.
+    * **Desktop:** Tauri builds for macOS, Windows, and Linux.
+    * **Mobile:** Support for Expo and Flutter.
+* **Next-Gen Model Power:** Powered by a multi-provider backend including **GPT-5**, **Claude 4.1 Opus**, and **Gemini 2.5 Pro**.
+* **Smart Coding Core:**
+    * **Symbol Memory:** Eliminates duplicate variables and functions.
+    * **AST-Safe Editing:** Ensures precise refactors without breaking syntax.
+    * **Regression Locks:** Protects your invariants while iterating.
+* **Safety First:** Integrated security guardrails (Semgrep), dependency audits, and automated checkpoints with rollback capabilities.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🛠️ Workflow Integration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Edgar lives where you code.
+* **@Mentions:** Context-aware referencing of files, terminals, git history, and URLs.
+* **Slash Commands:** Quick actions to streamline your dev loop.
+* **Plan & Act Mode:** strictly adhered to planned execution steps.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📦 Installation (Extension)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To start vibe coding with Edgar, install the extension directly from the Visual Studio Marketplace:
+
+[**Download Edgar - Vibe Coding AI**](https://marketplace.visualstudio.com/items?itemName=DaybotSolutionsInc.edgar-vibe-coding-ai)
+
+---
+
+## 💻 Running the Landing Page Locally
+
+If you wish to contribute to this landing page or run it locally for testing, follow these steps:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/MeharPro/Edgar-landing-page.git](https://github.com/MeharPro/Edgar-landing-page.git)
+    cd Edgar-landing-page
+    ```
+
+2.  **Open the project:**
+    * If this is a static site, simply open `index.html` in your browser.
+    * If this is a Node/React project, install dependencies and start the server:
+        ```bash
+        npm install
+        npm run dev
+        ```
+
+---
+
+## 📄 License
+
+This project is proprietary to **Daybot Solutions Inc**. All rights reserved.
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ by Daybot Solutions Inc.</sub>
+</div>
