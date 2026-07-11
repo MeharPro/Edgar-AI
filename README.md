@@ -70,5 +70,5 @@ This project is now opensource
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by Daybot Solutions Inc.</sub>
+  <sub>Built with ❤️ by Mehar.</sub>
 </div>
