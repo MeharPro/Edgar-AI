@@ -65,7 +65,7 @@ If you wish to contribute to this landing page or run it locally for testing, fo
 
 ## 📄 License
 
-This project is proprietary to **Daybot Solutions Inc**. All rights reserved.
+This project is now opensource
 
 ---
 
